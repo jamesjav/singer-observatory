@@ -1,6 +1,7 @@
 interface Props {
   onClose: () => void;
   onOpenCredits: () => void;
+  onReplayPrologue: () => void;
 }
 
 const GUIDE_ITEMS = [
@@ -13,7 +14,7 @@ const GUIDE_ITEMS = [
   { mark: 'H', tone: 'quiet', title: '静默巡航与深空声景', copy: '按 H 进入无文字沉浸环绕模式（移至屏幕边缘或再按 H 退出）；右上角可开启程序合成的深空环境低鸣。' },
 ] as const;
 
-export function AboutGuide({ onClose, onOpenCredits }: Props) {
+export function AboutGuide({ onClose, onOpenCredits, onReplayPrologue }: Props) {
   return (
     <div className="guide-backdrop" role="presentation" onClick={onClose}>
       <section className="guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title" onClick={(event) => event.stopPropagation()}>
@@ -63,7 +64,11 @@ export function AboutGuide({ onClose, onOpenCredits }: Props) {
         </div>
 
         <footer className="guide-footer">
-          <button className="guide-link" onClick={onOpenCredits}>查看底图与技术数据档案 →</button>
+          <div className="guide-footer-links">
+            <button className="guide-link" onClick={onReplayPrologue}>重看开屏序幕</button>
+            <span aria-hidden="true">/</span>
+            <button className="guide-link" onClick={onOpenCredits}>底图与技术数据档案 →</button>
+          </div>
           <button className="guide-enter" onClick={onClose}>返回观测</button>
         </footer>
       </section>

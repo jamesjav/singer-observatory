@@ -11,6 +11,10 @@ page.on('pageerror', error => report.errors.push(error.message));
 page.on('console', message => { if (/THREE.WebGLProgram|Shader Error/i.test(message.text())) report.errors.push(message.text()); });
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  if (await page.getByTestId('enter-observatory').isVisible().catch(() => false)) {
+    await page.getByTestId('enter-observatory').click();
+    await page.getByTestId('opening-prologue').waitFor({ state: 'detached', timeout: 5000 });
+  }
   await page.locator('.loading-status').waitFor({ state: 'detached', timeout: 30000 });
   await page.waitForFunction(() => document.querySelector('[data-testid=news-source-state]')?.dataset.mode === 'live', { timeout: 20000 });
   check('production omits the diagnostic engine global', await page.evaluate(() => window.__observatory === undefined));
