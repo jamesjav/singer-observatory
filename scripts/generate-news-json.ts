@@ -37,4 +37,7 @@ async function main() {
   console.info(`Wrote ${payload.events.length} items (${located} located), ${online}/${payload.sources.length} sources online -> ${outputPath}`);
 }
 
-await main();
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

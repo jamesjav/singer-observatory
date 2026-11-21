@@ -284,7 +284,6 @@ function waitRetry(delayMs: number, signal: AbortSignal): Promise<void> {
     if (signal.aborted) { reject(new Error('Source request aborted')); return; }
     const onAbort = () => { clearTimeout(timer); reject(new Error('Source request aborted')); };
     const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, delayMs);
-    timer.unref();
     signal.addEventListener('abort', onAbort, { once: true });
   });
 }
