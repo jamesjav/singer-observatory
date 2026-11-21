@@ -1,0 +1,55 @@
+name: Update Live News Snapshot
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+jobs:
+  update-news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install runtime dependencies
+        run: npm ci --omit=dev
+
+      - name: Prepare gh-pages branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git clone --depth 1 --branch gh-pages "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh-pages
+          else
+            mkdir -p /tmp/gh-pages
+            git -C /tmp/gh-pages init -b gh-pages
+            git -C /tmp/gh-pages remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+
+      - name: Fetch live news and seismic snapshot
+        run: node scripts/generate-news-json.ts /tmp/gh-pages/data/news.json
+
+      - name: Publish updated news.json to gh-pages
+        run: |
+          touch /tmp/gh-pages/.nojekyll
+          git -C /tmp/gh-pages config user.name "github-actions[bot]"
+          git -C /tmp/gh-pages config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C /tmp/gh-pages add data/news.json .nojekyll
+          if ! git -C /tmp/gh-pages diff --cached --quiet; then
+            git -C /tmp/gh-pages commit -m "chore(data): refresh live news snapshot"
+            git -C /tmp/gh-pages push origin gh-pages
+          fi

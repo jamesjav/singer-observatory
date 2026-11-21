@@ -1,0 +1,77 @@
+.surface-signals{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:1;transition:opacity .4s}
+.surface-signals.signals-hidden{opacity:0;pointer-events:none}
+.surface-signals>svg{position:absolute;width:100%;height:100%;overflow:visible}
+.surface-signals path,.surface-signals circle{fill:none;stroke:#b7c2c18c;stroke-width:1;vector-effect:non-scaling-stroke}
+.surface-signals circle{fill:#d4d8d0;stroke:#e5e7dd99}
+.surface-signals .seismic-leader path{stroke:#a0c0c49c}
+.surface-signals .seismic-leader circle{fill:#a0c0c4}
+.surface-signals .anomaly-leader path{stroke:#bb9272a6}
+.surface-label{position:absolute;min-height:48px;text-shadow:0 1px 4px #020305,0 0 9px #020305;animation:signal-arrive .45s ease-out}
+.surface-label>button{display:block;width:100%;text-align:left;pointer-events:auto}
+.signal-meta{display:flex;color:#859696;font-size:8px;line-height:1.7;white-space:nowrap;letter-spacing:-.25px;overflow:hidden}
+.signal-meta>span:not(.signal-place){flex-shrink:0}
+.signal-meta .signal-place{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.reference-top{display:none}
+.signal-headline{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11px;line-height:1.6;letter-spacing:.15px;color:#d1d6d1;margin-top:4px}
+.seismic-label .signal-headline{color:#adc9ce}
+.surface-label.is-fixed .signal-headline{color:#e0decd}
+.signal-fixed-meta{display:flex;justify-content:space-between;gap:10px;font-size:8px;line-height:1.6;margin-top:7px;color:#9a9e8d}
+.signal-fixed-meta a{pointer-events:auto;color:#c5b796}
+.signals-hidden a,.signals-hidden button{pointer-events:none}
+.surface-layerbar{position:absolute;left:50%;bottom:175px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:11px;white-space:nowrap}
+.surface-layerbar .layer-controls{display:flex;flex-direction:row;flex-wrap:nowrap;gap:18px;border:0;padding:0;max-width:none}
+.surface-layerbar .layer-toggle{font-size:9px;letter-spacing:.3px;gap:7px}
+.surface-layerbar .toggle-track{width:21px;height:9px}
+.surface-layerbar .toggle-track i{width:3px;height:3px;left:3px}
+.surface-layerbar .layer-toggle input:checked+.toggle-track i{left:13px}
+.layer-counts{font-size:8px;color:#839395;letter-spacing:.8px}
+.live-log{height:284px;bottom:160px}
+.live-log .section-heading{gap:6px;margin-bottom:12px}
+.log-collapse{display:flex;gap:12px;align-items:center;font:inherit;letter-spacing:1px}
+.log-collapse span{color:#aaa58f}
+.live-log.log-collapsed{height:28px;min-height:0}
+.live-log .news-stream{max-height:222px}
+.live-log .news-stream>button{margin:0;padding:5px 0;height:37px}
+.live-log .stream-title{-webkit-line-clamp:1;font-size:10px;line-height:1.4}
+.live-log .news-stream small{font-size:7px;margin-top:3px;line-height:1.1}
+.live-log .log-navigation{margin-bottom:8px}
+.live-log .stream-hint{font-size:7px!important;margin-top:9px!important}
+.instrument-panel .weather-slot{margin:10px 0 18px}
+.weather-light{color:#c0b08a}
+.weather-slot .weather-coordinate{white-space:normal}
+.instrument-panel .weather-values p{font-size:10px;line-height:1.8}
+.instrument-panel .weather-description{font-size:9px}
+@keyframes signal-arrive{from{opacity:0}to{opacity:1}}
+@media(min-width:821px){.planet-caption{top:calc(50% + min(100vw,100svh) * .23)}.planet-caption .caption-line{display:none}.planet-caption p{margin-bottom:8px}.surface-layerbar{bottom:164px}}
+@media(max-height:900px) and (min-width:821px){.planet-caption>span:last-of-type{display:none}}
+@media(min-width:601px) and (max-width:1150px){.surface-layerbar{bottom:137px}.surface-layerbar .layer-controls{gap:14px}.surface-layerbar .layer-toggle{font-size:8px}.surface-layerbar .layer-counts{display:none}.live-log{height:260px;bottom:175px}.live-log .news-stream{max-height:198px}.instrument-panel .weather-values p{font-size:8px}.field-meta{bottom:157px}.data-time-notice{bottom:119px}}
+@media(max-width:600px){
+  .observatory{min-height:1310px}
+  .universe{top:260px;bottom:680px}
+  .view-reference{top:calc(50% - 210px)}
+  .planet-caption{top:calc(50% - 210px + 25vw)}
+  .planet-caption .caption-line,.planet-caption>span:last-of-type{display:none}
+  .deep-space .planet-caption{top:calc(50% - 175px)}
+  .loading-status{top:calc(50% - 210px)}
+  .surface-layerbar{left:20px;right:20px;transform:none;bottom:610px;gap:10px;align-items:flex-start}
+  .surface-layerbar .layer-controls{gap:12px;justify-content:space-between;width:100%}
+  .surface-layerbar .layer-toggle{font-size:8px;letter-spacing:0;gap:4px;flex-direction:column}
+  .surface-layerbar .layer-toggle input{top:12px;right:calc(50% - 14px)}
+  .surface-layerbar .layer-counts{font-size:8px;letter-spacing:.4px}
+  .weather-mobile{bottom:437px;min-height:136px;padding-top:13px}
+  .weather-mobile .weather-values p{font-size:9px}
+  .weather-mobile .weather-coordinate{font-size:9px}
+  .live-log{bottom:173px;height:244px}
+  .live-log .news-stream{max-height:184px}
+  .live-log .news-stream>button{height:31px;padding:3px 0}
+  .live-log .stream-title{font-size:10px}
+  .live-log .news-stream small{font-size:7px;margin-top:3px}
+  .live-log .event-copy{font-size:11px;max-height:65px;min-height:50px;margin:9px 0;line-height:1.8}
+  .instrument-panel{bottom:575px;left:auto;width:123px}
+  .instrument-panel .wind-status{right:135px;left:auto;width:185px;bottom:10px;font-size:7px}
+  .instrument-panel .deep-space-button{padding:8px}
+  .signal-meta{font-size:8px}
+  .signal-headline{font-size:10px}
+  .field-meta{bottom:140px}
+  .data-time-notice{bottom:154px}
+}

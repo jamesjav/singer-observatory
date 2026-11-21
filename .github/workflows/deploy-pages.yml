@@ -1,0 +1,73 @@
+name: Deploy Site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build static bundle for GitHub Pages
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_NEWS_API_URL: ./data/news.json
+        run: npm run build
+
+      - name: Sync gh-pages while preserving live news.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git clone --depth 1 --branch gh-pages "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh-pages
+          else
+            mkdir -p /tmp/gh-pages
+            git -C /tmp/gh-pages init -b gh-pages
+            git -C /tmp/gh-pages remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+
+          if [ -f /tmp/gh-pages/data/news.json ]; then
+            cp /tmp/gh-pages/data/news.json /tmp/prev-news.json
+          fi
+
+          find /tmp/gh-pages -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -r dist/. /tmp/gh-pages/
+          mkdir -p /tmp/gh-pages/data
+
+          if [ -f /tmp/prev-news.json ]; then
+            cp /tmp/prev-news.json /tmp/gh-pages/data/news.json
+          else
+            node scripts/generate-news-json.ts /tmp/gh-pages/data/news.json
+          fi
+
+          touch /tmp/gh-pages/.nojekyll
+          git -C /tmp/gh-pages config user.name "github-actions[bot]"
+          git -C /tmp/gh-pages config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C /tmp/gh-pages add -A
+          if ! git -C /tmp/gh-pages diff --cached --quiet; then
+            git -C /tmp/gh-pages commit -m "chore(site): deploy static observatory build"
+            git -C /tmp/gh-pages push origin gh-pages
+          fi

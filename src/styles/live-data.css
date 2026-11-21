@@ -1,0 +1,128 @@
+.selection-guide{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
+.selection-guide path,.selection-guide circle{stroke:#b6c4c199;stroke-width:1;fill:none;vector-effect:non-scaling-stroke}
+.selection-guide circle{stroke:#b6aa86a6;fill:#a4997222}
+.news-source-state{margin-top:15px;font-size:9px;letter-spacing:.5px;position:relative;pointer-events:auto;color:#8a969c}
+.news-source-state>button{width:100%;display:flex;justify-content:space-between;text-align:left;font-size:9px;color:#a39c88}
+.news-source-state>small{display:block;line-height:1.6;font-size:7px;margin-top:5px}
+.source-details{position:absolute;left:-8px;right:-8px;top:21px;padding:10px 8px;background:#020305fa;z-index:5;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.source-details>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;font-size:8px}
+.source-details>div>span:last-child{text-align:right;max-width:100px;overflow-wrap:anywhere;font-size:7px}
+.source-details p{font-size:7px;line-height:1.8;margin:9px 0 0;color:#647079}
+.data-warning{color:#ab9375!important}
+.live-log{height:244px;min-height:0;pointer-events:auto}
+.live-log .section-heading{margin-bottom:13px}
+.log-navigation{display:flex;justify-content:space-between;align-items:center;margin:0 0 13px;font-size:8px;color:#68777f;gap:10px}
+.log-navigation button{color:#9d9b8b;font-size:8px;letter-spacing:.5px}
+.log-navigation button[aria-pressed=true]{color:#d0bea0}
+.news-stream{max-height:160px;overflow-y:auto;overscroll-behavior:contain;padding-right:5px;scrollbar-width:thin;scrollbar-color:#4f59624d transparent}
+.news-stream>button{display:block;width:100%;text-align:left;margin:0 0 12px;padding-bottom:9px;border-bottom:1px solid #6a79851c}
+.stream-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:10px;color:#a5afb3;line-height:1.8;letter-spacing:.2px}
+.news-stream button:hover .stream-title{color:#d0d3cf}
+.news-stream small{display:flex;justify-content:space-between;gap:10px;color:#667780;font-size:7px;margin-top:5px}
+.news-stream small span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%}
+.stream-hint{display:block;font-size:7px!important;margin-top:10px!important;color:#7d8174!important}
+.live-log .event-location{gap:10px;line-height:1.5}
+.live-log .event-location>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px}
+.live-log .event-tag{flex-shrink:0;font-size:8px;letter-spacing:.3px}
+.live-log .event-coordinates{margin:7px 0 4px;font-size:8px}
+.location-precision{font-size:7px;color:#67777f;line-height:1.7;margin:0 0 8px}
+.live-log .event-copy{min-height:40px;max-height:75px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#4f59624d transparent;line-height:1.8;font-size:11px;margin:9px 0;letter-spacing:.2px}
+.live-log .event-source{display:flex;align-items:baseline;gap:10px;justify-content:space-between;font-size:8px;line-height:1.8}
+.live-log .event-source>a{color:#b7a889;white-space:nowrap}
+.event-published{font-size:7px;letter-spacing:.3px;color:#6c7880;margin:5px 0 0}
+.live-log .quiet-copy{margin-top:25px}
+.weather-mobile{display:none}
+.instrument-panel .weather-slot{margin:14px 0 17px}
+.weather-mode{font-size:7px;letter-spacing:0;color:#7f918f;margin-left:4px}
+.weather-slot .weather-coordinate{font-size:8px;color:#89969c;margin:6px 0}
+.weather-values p{font-size:9px;letter-spacing:0;line-height:1.65;white-space:nowrap;margin:3px 0;color:#b0b9bd}
+.weather-values p>span{margin-left:8px;color:#87969c}
+.weather-values .weather-description{font-size:8px;color:#809088;margin:6px 0}
+.weather-slot>.micro-copy{display:block;font-size:7px;line-height:1.7;letter-spacing:0}
+.wind-status{font-size:7px;line-height:1.65;color:#7f969c;letter-spacing:.2px;margin:8px 0 0}
+.data-time-notice{position:absolute;left:50%;bottom:147px;transform:translateX(-50%);font-size:7px;color:#8b8066;letter-spacing:.4px;white-space:nowrap}
+@media(min-width:821px){
+  .observatory{min-height:820px}
+  .target-panel,.telemetry-panel{top:145px}
+  .distance-readout{display:none}
+  .target-subtitle{margin-bottom:15px}
+  .telemetry-panel>.section-heading{padding-bottom:9px}
+  .telemetry-panel .telemetry-item{padding-top:10px}
+  .telemetry-panel .atmosphere-item strong{font-size:22px}
+  .telemetry-panel .atmosphere-scale{margin:8px 0 5px}
+  .telemetry-panel .noise-count{top:78px}
+  .news-source-state{margin-top:12px}
+  .instrument-panel{bottom:160px}
+  .instrument-panel .layer-controls{gap:6px;padding-bottom:8px}
+  .instrument-panel .weather-slot{margin:8px 0 10px}
+  .weather-values p{font-size:8px;line-height:1.5;margin:2px 0}
+  .weather-slot .eyebrow{font-size:8px}
+  .instrument-panel .deep-space-button{padding:10px}
+  .live-log{height:230px}
+  .news-stream{max-height:146px}
+  .target-panel h1{margin-top:10px;font-size:31px}
+  .target-facts{gap:8px}
+  .target-classification{margin-top:12px}
+}
+@media(min-height:980px) and (min-width:821px){
+  .target-panel,.telemetry-panel{top:20%}
+  .distance-readout{display:flex}
+}
+@media(max-width:1150px){
+  .weather-values p{font-size:8px}
+  .weather-values p>span{margin-left:5px}
+  .stream-title{font-size:9px}
+  .live-log .event-copy{font-size:10px}
+  .live-log .event-location>span:first-child{max-width:140px}
+  .news-source-state>small{font-size:7px}
+}
+@media(min-width:601px) and (max-width:820px){
+  .telemetry-panel{top:110px}
+  .instrument-panel{bottom:165px}
+  .instrument-panel .weather-slot{margin:9px 0}
+  .instrument-panel .layer-controls{gap:8px;padding-bottom:10px}
+  .live-log{bottom:165px;height:244px}
+  .news-stream{max-height:156px}
+  .data-time-notice{bottom:135px}
+}
+@media(max-width:600px){
+  .observatory{min-height:1090px}
+  .universe{top:142px;bottom:484px}
+  .view-reference{top:calc(50% - 171px)}
+  .planet-caption{top:calc(50% - 183px + 25vw)}
+  .deep-space .planet-caption{top:calc(50% - 128px)}
+  .loading-status{top:calc(50% - 171px)}
+  .news-source-state{position:absolute;left:calc(176px - 100vw);right:auto;top:98px;margin:0;width:165px}
+  .news-source-state>button{font-size:8px}
+  .news-source-state>small{font-size:6px}
+  .source-details{position:fixed;left:20px;right:20px;top:auto;bottom:24px}
+  .weather-mobile{display:block;position:absolute;left:var(--edge);right:var(--edge);bottom:365px;padding-top:13px;border-top:1px solid var(--line);margin:0;min-height:109px}
+  .weather-mobile .eyebrow{font-size:9px}
+  .weather-mobile .weather-coordinate{font-size:8px}
+  .weather-mobile .weather-values{display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
+  .weather-mobile .weather-values p{font-size:8px;margin:2px 0;line-height:1.65}
+  .weather-mobile>.micro-copy{font-size:7px;margin-top:4px}
+  .weather-mobile .weather-values p>span{margin-left:5px}
+  .live-log{bottom:172px;left:var(--edge);right:var(--edge);width:auto;height:177px}
+  .live-log .section-heading{margin-bottom:10px;font-size:9px}
+  .log-navigation{margin-bottom:8px;font-size:7px}
+  .log-navigation button{font-size:7px}
+  .news-stream{max-height:105px}
+  .news-stream>button{margin-bottom:8px;padding-bottom:7px}
+  .stream-title{font-size:9px;line-height:1.6;-webkit-line-clamp:1}
+  .news-stream small{font-size:7px}
+  .stream-hint{margin-top:6px!important;font-size:6px!important}
+  .live-log .event-location{margin-top:4px;font-size:9px}
+  .live-log .event-coordinates{margin:4px 0 2px;font-size:7px}
+  .location-precision{font-size:6px;margin:0 0 3px;line-height:1.4}
+  .live-log .event-copy{font-size:10px;max-height:37px;min-height:30px;margin:5px 0;line-height:1.7}
+  .live-log .event-source{font-size:7px}
+  .event-published{font-size:6px;margin-top:3px}
+  .instrument-panel{bottom:503px;left:var(--edge);right:var(--edge)}
+  .instrument-panel .layer-controls{gap:11px;max-width:calc(100% - 123px)}
+  .instrument-panel .weather-slot{display:none}
+  .wind-status{position:absolute;left:0;right:135px;bottom:-23px;margin:0;font-size:6px;line-height:1.5}
+  .data-time-notice{bottom:150px;font-size:6px}
+  .field-meta{bottom:134px}
+  .deep-space-button{flex-basis:123px}
+}

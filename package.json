@@ -1,0 +1,31 @@
+{
+  "name": "singer-observatory",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5181 --strictPort --configLoader native",
+    "build": "tsc -b && vite build --configLoader native",
+    "preview": "node server/index.ts",
+    "start": "node server/index.ts",
+    "generate:news": "node scripts/generate-news-json.ts",
+    "test": "vitest run --configLoader native"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.12.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "^0.181.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.181.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.2",
+    "vitest": "^4.0.8"
+  }
+}
