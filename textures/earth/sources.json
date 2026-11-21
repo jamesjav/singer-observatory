@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "verified_at_utc": "2026-11-20T18:29:18Z",
+  "asset_directory": "/textures/earth/",
+  "status": "All five requested 2K maps downloaded and verified; no fallback or procedural replacements.",
+  "publisher": {
+    "name": "Solar System Scope / INOVE",
+    "source_page": "https://www.solarsystemscope.com/textures/",
+    "upstream": "Publisher states the pack is based on NASA elevation and imagery data, and Earth textures merge geo-data, space photos and NASA Blue Marble imagery.",
+    "limitations": "Artist-adjusted imagery, not a live observation or a geodetic dataset. Publisher describes increased saturation, abundant vegetation and reduced snow. Acquisition dates are not supplied on the source page."
+  },
+  "license": {
+    "spdx": "CC-BY-4.0",
+    "name": "Creative Commons Attribution 4.0 International",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "applies_to": "All downloaded maps and derived JPEG files listed below.",
+    "evidence_url": "https://www.solarsystemscope.com/textures/",
+    "publisher_statement": "Distributed under Attribution 4.0 International license: You may use, adapt, and share these textures for any purpose, even commercially.",
+    "requirements": [
+      "Credit Solar System Scope / INOVE and link to the source and license.",
+      "Indicate modifications; retain supplied attribution and notices.",
+      "Do not imply endorsement or impose additional legal or technological restrictions."
+    ],
+    "suggested_attribution": "Earth textures by Solar System Scope / INOVE (https://www.solarsystemscope.com/textures/), based on NASA imagery, licensed CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Normal and specular TIFF maps converted to JPEG using Apple sips; other images unchanged.",
+    "integration_note": "Include attribution in the application's accessible credits. This assets-only task does not implement application credits. Do not treat these edited publisher textures as license-free solely because NASA data is upstream."
+  },
+  "mapping": {
+    "projection": "equirectangular",
+    "aspect_ratio": "2:1",
+    "longitude_degrees": [-180, 180],
+    "latitude_degrees_top_to_bottom": [90, -90],
+    "greenwich_u": 0.5,
+    "equator_image_y_fraction": 0.5,
+    "north_is_top": true,
+    "east_is_right": true,
+    "seam_longitude_degrees": 180,
+    "formulas": {
+      "u": "(longitude_degrees + 180) / 360",
+      "image_y_fraction_from_top": "(90 - latitude_degrees) / 180",
+      "v_bottom_origin": "(latitude_degrees + 90) / 180"
+    },
+    "spatial_modifications": "None: no horizontal shift, rotation, crop, resampling or flip was applied.",
+    "verification": {
+      "publisher_evidence": "Source page explicitly describes the maps as real planetary maps in equirectangular projection.",
+      "visual_evidence": "Decoded and viewed every delivered JPEG. Day/night coastlines, specular land mask, and normal relief share the Greenwich-centered layout: Americas left, Europe/Africa at center, Asia/Australia right, Antarctica at bottom. UK/West Africa positions are consistent with Greenwich at the horizontal midpoint. Cloud image retains the matching source orientation; visible Greenland and Antarctic features are consistent with the other maps.",
+      "accuracy_limit": "Orientation and landmark alignment verified visually, not by survey-grade control points. Files contain no independently verified geographic transform. Cloud alignment has less certainty than the coastline maps because it depicts weather rather than a land mask."
+    },
+    "threejs_note": "Use consistent UVs and texture orientation for all maps. For ordinary TextureLoader images, default flipY=true corresponds to north at UV v=1. A custom globe coordinate convention may still require a mesh rotation; do not shift one map independently."
+  },
+  "transparency": {
+    "embedded_alpha": false,
+    "clouds": "clouds.jpg is an opaque RGB JPEG with grayscale cloud intensity, not a transparent PNG. Use its intensity as an alpha/opacity mask on a white cloud layer: black=transparent, white=opaque, gray=partial. In Three.js, alphaMap reads the green channel; enable transparency. No alpha-channel asset was created.",
+    "cloud_limitations": "Original map includes bright polar/Greenland features. It is an artistic static cloud mask, not a scientifically isolated current cloud field."
+  },
+  "rendering_data_notes": {
+    "day_and_night": "Color textures: typically sRGB. Night has a dim colored Earth background as well as lights, not an isolated binary light mask.",
+    "clouds_specular_normal": "Treat opacity, specular and normal values as non-color data (Three.js NoColorSpace).",
+    "specular": "White water/ocean and black land; some inland water is white. This is a water/specularity mask, not a roughness map. Roughness generally needs inverse interpretation.",
+    "normal": "RGB tangent-space-looking normal map with blue/purple neutral areas; not a grayscale bump map. Publisher does not document normal Y-channel handedness; verify raised terrain in the renderer before choosing normalScale.y sign. No normal-channel inversion was applied. JPEG conversion is lossy; retained TIFF is the unmodified master."
+  },
+  "assets": [
+    {
+      "file": "day.jpg",
+      "role": "day_color",
+      "source_url": "https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg",
+      "source_http_status": 200,
+      "source_http_content_type": "image/jpeg",
+      "detected_mime": "image/jpeg",
+      "width": 2048,
+      "height": 1024,
+      "channels": "RGB",
+      "has_alpha": false,
+      "bytes": 463087,
+      "sha256": "767ee1dc6eb3802699bfccf6f264880f8acd0b80de3191cd24984fe279b07b7c",
+      "derived": false,
+      "changes": "Renamed only; downloaded bytes unchanged.",
+      "content_verified": "Recognizable cloud-free Earth daytime land/ocean mosaic."
+    },
+    {
+      "file": "night.jpg",
+      "role": "night_lights",
+      "source_url": "https://www.solarsystemscope.com/textures/download/2k_earth_nightmap.jpg",
+      "source_http_status": 200,
+      "source_http_content_type": "image/jpeg",
+      "detected_mime": "image/jpeg",
+      "width": 2048,
+      "height": 1024,
+      "channels": "RGB",
+      "has_alpha": false,
+      "bytes": 255287,
+      "sha256": "c16fd1bc096ab91a5c5265c6ff9847c43f489f2e2ee790ccdbcbd03251cf3a5a",
+      "derived": false,
+      "changes": "Renamed only; downloaded bytes unchanged.",
+      "content_verified": "Recognizable city-light concentrations with a dark Earth background; matches day layout."
+    },
+    {
+      "file": "clouds.jpg",
+      "role": "cloud_opacity_mask",
+      "source_url": "https://www.solarsystemscope.com/textures/download/2k_earth_clouds.jpg",
+      "source_http_status": 200,
+      "source_http_content_type": "image/jpeg",
+      "detected_mime": "image/jpeg",
+      "width": 2048,
+      "height": 1024,
+      "channels": "RGB",
+      "has_alpha": false,
+      "bytes": 965676,
+      "sha256": "fffd7f68d41b37274822150e54a6ef605af1d3ec35624d9f628c3b896bfa42ed",
+      "derived": false,
+      "changes": "Renamed only; downloaded bytes unchanged.",
+      "content_verified": "Grayscale global cloud structures with black clear areas and bright polar features. No embedded transparency."
+    },
+    {
+      "file": "specular-source.tif",
+      "role": "specular_original_master",
+      "source_url": "https://www.solarsystemscope.com/textures/download/2k_earth_specular_map.tif",
+      "source_http_status": 200,
+      "source_http_content_type": "image/tiff",
+      "detected_mime": "image/tiff",
+      "width": 2048,
+      "height": 1024,
+      "channels": "RGB",
+      "has_alpha": false,
+      "bytes": 338524,
+      "sha256": "6b90ecfce248591a1ecc9a3e49acca1a7059b6828877e718302ed9a6b4471bd7",
+      "derived": false,
+      "changes": "Renamed only; downloaded bytes unchanged.",
+      "content_verified": "Actual TIFF, decoded successfully by sips; derived JPEG visually verifies the land/water mask."
+    },
+    {
+      "file": "specular.jpg",
+      "role": "ocean_specular_mask",
+      "source_url": "https://www.solarsystemscope.com/textures/download/2k_earth_specular_map.tif",
+      "derived_from": "specular-source.tif",
+      "detected_mime": "image/jpeg",
+      "width": 2048,
+      "height": 1024,
+      "channels": "RGB",
+      "has_alpha": false,
+      "bytes": 465875,
+      "sha256": "d1d3a2af979bc58b5c2d0038edede2be44f3668028b35fae556c7f602f8538fe",
+      "derived": true,
+      "changes": "Apple sips -s format jpeg -s formatOptions best; TIFF to lossy JPEG at original dimensions. No mask inversion.",
+      "content_verified": "White oceans/water, black land; coastlines align visually with day map."
+    },
+    {
+      "file": "normal-source.tif",
+      "role": "normal_original_master",
+      "source_url": "https://www.solarsystemscope.com/textures/download/2k_earth_normal_map.tif",
+      "source_http_status": 200,
+      "source_http_content_type": "image/tiff",
+      "detected_mime": "image/tiff",
+      "width": 2048,
+      "height": 1024,
+      "channels": "RGB",
+      "has_alpha": false,
+      "bytes": 521376,
+      "sha256": "f518ce2646ca935dbc17e316041de4fea7a5da0ec441e4eb22e711eabd843ba2",
+      "derived": false,
+      "changes": "Renamed only; downloaded bytes unchanged.",
+      "content_verified": "Actual TIFF, decoded successfully by sips; derived JPEG visually verifies relief normals."
+    },
+    {
+      "file": "normal.jpg",
+      "role": "surface_normal",
+      "source_url": "https://www.solarsystemscope.com/textures/download/2k_earth_normal_map.tif",
+      "derived_from": "normal-source.tif",
+      "detected_mime": "image/jpeg",
+      "width": 2048,
+      "height": 1024,
+      "channels": "RGB",
+      "has_alpha": false,
+      "bytes": 556511,
+      "sha256": "a2d670948824edaac07775ac2d140c72c7720e709f235f6d9bf2fda70d91d08d",
+      "derived": true,
+      "changes": "Apple sips -s format jpeg -s formatOptions best; TIFF to lossy JPEG at original dimensions. No channel inversion.",
+      "content_verified": "Blue/purple normal map with Andes, Himalayas and other terrain relief in the expected locations."
+    }
+  ],
+  "download_attempts": [
+    {"url": "https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg", "http_status": 200, "curl_exit_code": 0, "result": "success", "saved_as": "day.jpg"},
+    {"url": "https://www.solarsystemscope.com/textures/download/2k_earth_nightmap.jpg", "http_status": 200, "curl_exit_code": 0, "result": "success", "saved_as": "night.jpg"},
+    {"url": "https://www.solarsystemscope.com/textures/download/2k_earth_clouds.jpg", "http_status": 200, "curl_exit_code": 0, "result": "success", "saved_as": "clouds.jpg"},
+    {"url": "https://www.solarsystemscope.com/textures/download/2k_earth_specular_map.tif", "http_status": 200, "curl_exit_code": 0, "result": "success", "saved_as": "specular-source.tif"},
+    {"url": "https://www.solarsystemscope.com/textures/download/2k_earth_normal_map.tif", "http_status": 200, "curl_exit_code": 0, "result": "success", "saved_as": "normal-source.tif"}
+  ],
+  "failed_attempts": [],
+  "substitutions": [],
+  "fallbacks": [
+    {"file": "day-fallback.jpg", "derived_from": "day.jpg", "width": 1024, "height": 512},
+    {"file": "night-fallback.jpg", "derived_from": "night.jpg", "width": 1024, "height": 512},
+    {"file": "clouds-fallback.jpg", "derived_from": "clouds.jpg", "width": 1024, "height": 512},
+    {"file": "normal-fallback.jpg", "derived_from": "normal.jpg", "width": 1024, "height": 512},
+    {"file": "specular-fallback.jpg", "derived_from": "specular.jpg", "width": 1024, "height": 512}
+  ],
+  "fallback_generation": "Apple sips -Z 1024; local resized copies, not alternate sources. Prepared proactively, not triggered by download failure.",
+  "derivations": [
+    {"input": "specular-source.tif", "output": "specular.jpg", "tool": "Apple sips", "options": ["-s", "format", "jpeg", "-s", "formatOptions", "best"], "exit_code": 0, "resized": false},
+    {"input": "normal-source.tif", "output": "normal.jpg", "tool": "Apple sips", "options": ["-s", "format", "jpeg", "-s", "formatOptions", "best"], "exit_code": 0, "resized": false}
+  ],
+  "validation": {
+    "http": "Every attempted download returned HTTP 200 with the expected image Content-Type; no alternate download hosts were needed.",
+    "file_signatures": "file --mime-type independently identified all JPEG/TIFF contents correctly; no HTML/error document was saved as an image.",
+    "image_metadata": "sips independently reported every image as 2048x1024 RGB without alpha; all JPEGs were decoded and visually inspected.",
+    "integrity": "SHA-256 and byte lengths recorded for every image, including original TIFF masters.",
+    "tool_availability": "Optional Pillow check returned unavailable. Pillow was not invoked; sips handled all required conversions successfully.",
+    "scope": "Only Earth texture assets and this sources.json were created in the owned directory. No application code or documentation files created."
+  }
+}
