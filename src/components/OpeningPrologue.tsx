@@ -75,6 +75,8 @@ export function OpeningPrologue({ onEnter }: Props) {
             <b>/</b>
             <span>＋ 点选地表 · 实时天气</span>
             <b>/</b>
+            <span>∞ 下方 · 新闻耦合混沌系统</span>
+            <b>/</b>
             <span>▭ 右上角 · 二向箔清理预演</span>
           </p>
         </div>

@@ -12,6 +12,7 @@ const GUIDE_ITEMS = [
   { mark: '↗', tone: 'deep', title: '深空退远 · 暗淡蓝点', copy: '将镜头平滑退远至地月轨道之外，看地球缩成星海尘埃，所有喧嚣衰减至背景噪声以下。' },
   { mark: '▭', tone: 'foil', title: '清理预演 · 二向箔', copy: '体验三维地球连同灯火与新闻缓慢展平为二维星图的可逆艺术演出，随时可点击「时空回溯」复原。' },
   { mark: 'H', tone: 'quiet', title: '静默巡航与深空声景', copy: '按 H 进入无文字沉浸环绕模式（移至屏幕边缘或再按 H 退出）；右上角可开启程序合成的深空环境低鸣。' },
+  { mark: '∞', tone: 'chaos', title: '地球下方 · 混沌相空间', copy: '下滑或点击「混沌相空间 ↓」，实时新闻 API 熵值直接耦合洛伦兹大气混沌与三体引力轨道，直观呈现蝴蝶效应双轨分叉。' },
 ] as const;
 
 export function AboutGuide({ onClose, onOpenCredits, onReplayPrologue }: Props) {

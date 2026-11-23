@@ -17,6 +17,8 @@ import { ObservationLog } from '../components/ObservationLog';
 import { TimeControl } from '../components/TimeControl';
 import { AboutGuide } from '../components/AboutGuide';
 import { OpeningPrologue } from '../components/OpeningPrologue';
+import { ChaosObservatory } from '../components/ChaosObservatory';
+import { deriveChaosParameters } from '../simulation/chaos';
 import { estimatedPopulation, POPULATION_NOTE } from '../astronomy/scale';
 import { Soundscape } from '../audio/soundscape';
 
@@ -75,6 +77,13 @@ export default function App() {
   const [wind, setWind] = useState<WindState>({ state: 'idle', samples: [], fetchedAt: null, message: '按需接通 · 全球稀疏采样' });
 
   const locatedEvents = useMemo(() => news?.events.filter(isLocated) ?? [], [news]);
+  const chaosSummary = useMemo(() => deriveChaosParameters(news), [news]);
+  const scrollToChaos = () => {
+    document.getElementById('chaos-observatory')?.scrollIntoView({ behavior: 'smooth' });
+  };
+  const scrollToEarth = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const selectEvent = (event: NewsItem | null) => {
     setHoveredEvent(null);
     if (event && isLocated(event)) {
@@ -276,7 +285,7 @@ export default function App() {
     try { localStorage.setItem(PROLOGUE_STORAGE_KEY, 'seen'); } catch { /* Storage is optional. */ }
   };
 
-  return <main className={`observatory ${deep ? 'deep-space' : ''} ${quiet ? 'is-quiet' : ''} ${dimensionalActive ? 'is-dimensional' : ''} ${prologueOpen ? 'is-prologue' : ''}`} data-phase={phase}>
+  return <div className="observatory-page"><main className={`observatory ${deep ? 'deep-space' : ''} ${quiet ? 'is-quiet' : ''} ${dimensionalActive ? 'is-dimensional' : ''} ${prologueOpen ? 'is-prologue' : ''}`} data-phase={phase}>
     <div className="universe" ref={canvasHost} />
     <SelectionGuide engine={engine} picked={picked} silent={telemetry.silent || quiet || dimensionalActive || guideOpen || prologueOpen} />
     <SurfaceSignals engine={engine} events={locatedEvents} selected={selectedEvent} hovered={hoveredEvent} paused={surfaceHovered} hidden={!labelsEnabled || quiet || deep || dimensionalActive || calibration || guideOpen || prologueOpen} newsEnabled={noise} quakesEnabled={quakesEnabled} onSelect={selectEvent} />
@@ -340,12 +349,12 @@ export default function App() {
       <div className="field-meta"><span className="interaction-hint">拖曳旋转 <b>·</b> 滚动接近 <b>·</b> 点选地表</span><span className="field-actions"><button onClick={toggleCalibration} aria-pressed={calibration}>坐标校准</button><span>/</span><button onClick={() => setCredits(!credits)} aria-expanded={credits}>底图档案{textures.warnings.length > 0 ? ' !' : ''}</button></span></div>
 
       <TimeControl utc={telemetry.utc} mode={mode} onChange={changeMode} />
-      <div className="bottom-signature"><span>清理，只是一份普通的工作。</span><span>观测日期 {date.toISOString().slice(0, 10)} <span className="signature-dot">·</span> 无需回应</span></div>
+      <div className="bottom-signature"><span>清理，只是一份普通的工作。</span><button className="chaos-cue" data-testid="scroll-to-chaos" onClick={scrollToChaos}>↓ 混沌相空间 · ρ {chaosSummary.rho.toFixed(2)} · {chaosSummary.regimeLabel}</button><span>观测日期 {date.toISOString().slice(0, 10)} <span className="signature-dot">·</span> 无需回应</span></div>
     </div>
 
     <nav className="narrative-dock" aria-label="歌者观测模式" inert={quiet || prologueOpen}>
       <div className="narrative-left">
-        {!dimensionalActive && <><button data-testid="quiet-mode" disabled={!telemetry.ready} onClick={() => changeQuiet(true)}>静默巡航 <kbd>H</kbd></button><span>/</span><button onClick={() => { setScaleExpanded(!scaleExpanded); setGuideOpen(false); }} aria-expanded={scaleExpanded} data-testid="cosmic-scale">尺度遥测 {scaleExpanded ? '−' : '+'}</button><span>/</span><button data-testid="about-guide" aria-expanded={guideOpen} onClick={() => { setGuideOpen(!guideOpen); setScaleExpanded(false); setCredits(false); }}>关于作品 <kbd>?</kbd></button></>}
+        {!dimensionalActive && <><button data-testid="quiet-mode" disabled={!telemetry.ready} onClick={() => changeQuiet(true)}>静默巡航 <kbd>H</kbd></button><span>/</span><button onClick={() => { setScaleExpanded(!scaleExpanded); setGuideOpen(false); }} aria-expanded={scaleExpanded} data-testid="cosmic-scale">尺度遥测 {scaleExpanded ? '−' : '+'}</button><span>/</span><button data-testid="nav-chaos" onClick={scrollToChaos}>混沌相空间 ↓</button><span>/</span><button data-testid="about-guide" aria-expanded={guideOpen} onClick={() => { setGuideOpen(!guideOpen); setScaleExpanded(false); setCredits(false); }}>关于作品 <kbd>?</kbd></button></>}
       </div>
       <div className="narrative-right">
         <button data-testid="sound-toggle" aria-pressed={audioEnabled} data-audio-initialized={sound.current?.initialized ?? false} onClick={() => { void toggleSound(); }}>{audioEnabled ? '声景 / 开' : '声景 / 静音'}</button>
@@ -380,5 +389,13 @@ export default function App() {
     {guideOpen && !quiet && !dimensionalActive && !prologueOpen && <AboutGuide onClose={() => setGuideOpen(false)} onOpenCredits={() => { setGuideOpen(false); setCredits(true); }} onReplayPrologue={() => { setGuideOpen(false); setPrologueOpen(true); }} />}
 
     {credits && <aside className="credits-panel" aria-label="贴图来源与运行状态"><div className="section-heading">地表档案 / 数据来源<button onClick={() => setCredits(false)} aria-label="关闭底图档案">×</button></div><p>5 张 2048 × 1024 等距圆柱投影底图，均由本地载入，不依赖运行时外链。</p><p><a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noreferrer">Solar System Scope / INOVE ↗</a><br />基于 NASA 影像与地理数据的艺术化整理，非实时卫星图像。<br /><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0 ↗</a></p><p>法线与海洋遮罩由 TIFF 转换为 JPEG；另生成 1K 本地备用副本。云系为静态底图的独立平流演示，并非实时云场。</p><p>日照采用 UTC 天文位置；材质与大气为实时渲染近似。球面位置精度受 2K 底图分辨率限制。</p><p>新闻保留源标题；地名词典仅提供城市/国家中心近似。GDELT 上游不可达，已由 USGS 全球 24 小时 M2.5+ 地震替换；细环使用 USGS 震中与深度，非行政区中心，后续可能修订。缺失发布时间不使用采集时间冒充。</p><p>气象与风向来自 <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo ↗</a> 当前数值模型，非站点实测；模型格点可能吸附邻近坐标。降水为最近模型时间间隔累计；风向为来向。风场为稀疏局地向量示踪，粒子速度仅用于可视化，非完整大气模拟。</p><p>人口为基数与增速假设的连续估算，非实时人口统计。日地距离为轨道近似；月轨仅作平均尺度参照。二向箔为可逆艺术化演出，等高纹理由底图明度生成，并非真实高程或物理降维模拟。声景为程序合成，默认严格静音。</p><div className="source-status">{textures.warnings.length ? textures.warnings.map((warning) => <p key={warning}>{warning}</p>) : <p>资源状态 / 原始 2K 底图正常 · 未启用降级</p>}</div><a href={`${import.meta.env.BASE_URL}textures/earth/sources.json`} target="_blank" rel="noreferrer">查看完整来源与转换记录 ↗</a></aside>}
-  </main>;
+  </main>
+  <ChaosObservatory
+    snapshot={news}
+    selectedEvent={selectedEvent}
+    hidden={quiet || dimensionalActive || prologueOpen}
+    onFocusOnEarth={(item) => { selectEvent(item); scrollToEarth(); }}
+    onBackToEarth={scrollToEarth}
+  />
+  </div>;
 }

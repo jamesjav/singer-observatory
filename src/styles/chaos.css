@@ -1,0 +1,71 @@
+.observatory-page{width:100%;background:#020305}
+.chaos-cue{display:inline-flex;align-items:center;gap:8px;color:#9c937a;font-size:8px;letter-spacing:1.2px;pointer-events:auto}
+.chaos-cue:hover{color:#dfd5be}
+.chaos-section{position:relative;width:100%;padding:56px var(--edge) 64px;border-top:1px solid var(--line);background:radial-gradient(circle at 38% 45%,rgba(22,31,38,.18),transparent 58%),#020305;color:#a8adae}
+.chaos-header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding-bottom:24px;border-bottom:1px solid var(--line);margin-bottom:28px}
+.chaos-header h2{margin:10px 0 8px;font-size:24px;font-weight:300;letter-spacing:4px;color:#cdd2d3}
+.chaos-subtitle{margin:0;max-width:620px;font-size:11px;line-height:1.85;letter-spacing:.3px;color:#7f8b92;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+.chaos-header-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.chaos-tabs{display:inline-flex;border:1px solid var(--line)}
+.chaos-tabs button{padding:7px 14px;font-size:10px;letter-spacing:1px;color:#78858d;border-right:1px solid var(--line)}
+.chaos-tabs button:last-child{border-right:0}
+.chaos-tabs button[aria-selected=true]{color:#d2c5a8;background:rgba(162,148,118,.08)}
+.chaos-return{font-size:10px;letter-spacing:1.2px;color:#8e9ba2;border-bottom:1px solid #8e9ba244;padding-bottom:3px;white-space:nowrap}
+.chaos-layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,0.85fr);gap:28px;align-items:start}
+.chaos-stage{display:flex;flex-direction:column;gap:14px}
+.chaos-canvas-frame{position:relative;border:1px solid var(--line);background:#030508;padding:14px 16px 12px}
+.chaos-corner{position:absolute;width:10px;height:10px;border-color:#a8b3bb44;border-style:solid;pointer-events:none}
+.chaos-corner.tl{top:-1px;left:-1px;border-width:1px 0 0 1px}
+.chaos-corner.tr{top:-1px;right:-1px;border-width:1px 1px 0 0}
+.chaos-corner.bl{bottom:-1px;left:-1px;border-width:0 0 1px 1px}
+.chaos-corner.br{bottom:-1px;right:-1px;border-width:0 1px 1px 0}
+.chaos-stage-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:9px;letter-spacing:.6px;color:#627079;margin-bottom:8px}
+.chaos-canvas{display:block;width:100%;height:420px;cursor:grab;touch-action:none}
+.chaos-canvas:active{cursor:grabbing}
+.chaos-legend-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding-top:10px;border-top:1px solid #76848e1c;font-size:9px;color:#7f8b92}
+.chaos-legend-bar>span{display:inline-flex;align-items:center;gap:7px}
+.chaos-legend-bar i{display:inline-block;width:10px;height:2px}
+.swatch-primary{background:#b4c6cf}
+.swatch-shadow{background:#c9b182}
+.swatch-gamma{background:#7ea1b0}
+.chaos-active-trigger{margin-left:auto;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a49a80}
+.era-chaotic{margin-left:auto;color:#b88f6c}
+.era-stable{margin-left:auto;color:#8fa8b2}
+.chaos-scope-bar{border:1px solid var(--line);background:#030508;padding:10px 14px}
+.chaos-scope-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:9px;color:#728088;margin-bottom:8px}
+.chaos-scope-head strong{font-weight:400;color:#c2b290;font-variant-numeric:tabular-nums}
+.chaos-scope{display:block;width:100%;height:56px}
+.chaos-sidebar{display:flex;flex-direction:column;gap:22px}
+.chaos-panel{border-top:1px solid var(--line);padding-top:16px}
+.chaos-metrics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 14px;margin:16px 0 18px}
+.chaos-metrics-grid>div{border-left:1px solid #76848e24;padding-left:11px}
+.chaos-metrics-grid .eyebrow{display:block;font-size:8px}
+.chaos-metrics-grid strong{display:block;margin:6px 0 4px;font-size:20px;font-weight:300;color:#c7cecf;font-variant-numeric:tabular-nums}
+.chaos-metrics-grid small{display:block;font-size:8px;line-height:1.5;color:#627078}
+.chaos-controls{display:flex;flex-wrap:wrap;gap:10px}
+.chaos-controls button{font-size:10px;letter-spacing:.8px;padding:7px 12px;border:1px solid #76848e36;color:#9ea8ad}
+.chaos-controls button:first-child{border-color:#a5967866;color:#cfc2a5}
+.chaos-controls button:hover{border-color:#b7c1c577;color:#e0e3e4}
+.chaos-feed-note{margin:10px 0 14px;font-size:10px;line-height:1.75;color:#6d7a82;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+.chaos-event-list{display:flex;flex-direction:column;gap:8px;max-height:270px;overflow-y:auto;padding-right:4px;scrollbar-width:thin;scrollbar-color:#4f59624d transparent}
+.chaos-event-row{display:flex;align-items:stretch;gap:8px;border-bottom:1px solid #6a79851c;padding-bottom:8px}
+.chaos-event-row.is-active .chaos-event-title{color:#dfd3b8}
+.chaos-event-trigger{flex:1;min-width:0;text-align:left}
+.chaos-event-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:10px;line-height:1.65;color:#a5afb3}
+.chaos-event-trigger:hover .chaos-event-title{color:#dce0e1}
+.chaos-event-trigger small{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:8px;color:#65747c}
+.anomaly-value{color:#b47669}
+.chaos-event-locate{flex:0 0 auto;align-self:center;font-size:8px;letter-spacing:.5px;color:#8d9ba2;border:1px solid #76848e2c;padding:4px 8px;white-space:nowrap}
+.chaos-event-locate:hover{border-color:#a5967866;color:#d6cab0}
+.chaos-philosophy{margin-top:34px;padding-top:18px;border-top:1px solid var(--line)}
+.chaos-philosophy p{margin:0;font-size:11px;line-height:1.9;letter-spacing:.5px;color:#67747c;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+@media(max-width:1024px){.chaos-layout{grid-template-columns:1fr}.chaos-canvas{height:360px}}
+@media(max-width:680px){
+  .chaos-section{padding:36px var(--edge) 48px}
+  .chaos-header{flex-direction:column;align-items:flex-start;gap:16px}
+  .chaos-header h2{font-size:19px;letter-spacing:2px}
+  .chaos-stage-meta{flex-direction:column;align-items:flex-start;gap:4px;font-size:8px}
+  .chaos-canvas{height:300px}
+  .chaos-active-trigger,.era-chaotic,.era-stable{margin-left:0;max-width:100%}
+  .chaos-cue{display:none}
+}
