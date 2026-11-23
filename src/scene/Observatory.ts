@@ -72,6 +72,12 @@ export class Observatory {
   private ready = false;
   private noiseEnabled = true;
   private quakesEnabled = true;
+  private autoRotate = true;
+  private lockedOnEvent = false;
+  private dragging = false;
+  private lastUserDragEnd = 0;
+  private lastFrameNow = performance.now();
+  private readonly polarAxis = new Vector3(0, 1, 0);
   private highlightedId: string | null = null;
   private initialViewChosen = false;
   private userNavigated = false;
@@ -129,6 +135,7 @@ export class Observatory {
     this.controls.minPolarAngle = 0.05;
     this.controls.maxPolarAngle = Math.PI - 0.05;
     this.controls.addEventListener('start', this.onNavigation);
+    this.controls.addEventListener('end', this.onNavigationEnd);
     this.scene.add(createStars(), this.foil, this.lunarReference);
     this.resizeObserver = new ResizeObserver(this.resize);
     this.resizeObserver.observe(host);
@@ -192,6 +199,8 @@ export class Observatory {
   setClouds(enabled: boolean) { this.cloudsEnabled.value = enabled ? 1 : 0; if (this.clouds) this.clouds.visible = enabled; }
   setNoise(enabled: boolean) { this.noiseEnabled = enabled; }
   setQuakes(enabled: boolean) { this.quakesEnabled = enabled; }
+  setAutoRotate(enabled: boolean) { this.autoRotate = enabled; if (enabled) this.lastUserDragEnd = 0; }
+  setEventLocked(locked: boolean) { this.lockedOnEvent = locked; }
   setHighlight(id: string | null) { this.highlightedId = id; }
   setCalibration(enabled: boolean) { this.calibrating = enabled; this.rebuildMarkers(); }
 
@@ -307,6 +316,8 @@ export class Observatory {
   private frame = (now: number) => {
     if (this.disposed || !this.hostVisible || !this.tabVisible) { this.animation = 0; return; }
     this.animation = requestAnimationFrame(this.frame);
+    const frameDt = Math.min(0.1, Math.max(0, (now - this.lastFrameNow) / 1000));
+    this.lastFrameNow = now;
     const dimensional = this.sequence.sample(now);
     const utc = this.clock.read(now);
     const solar = solarPosition(utc);
@@ -335,6 +346,18 @@ export class Observatory {
       const up = solar.direction.clone().cross(right).normalize();
       const angle = this.cruiseAngle + Math.max(0, now - this.cruiseStarted - 3200) * 0.0000015;
       this.camera.position.copy(right.multiplyScalar(Math.cos(angle)).addScaledVector(up, Math.sin(angle)).setLength(this.normalDistance));
+    } else if (
+      this.autoRotate &&
+      !this.cameraTween &&
+      !activeSequence &&
+      !this.calibrating &&
+      !this.lockedOnEvent &&
+      !this.dragging &&
+      !this.hoverId &&
+      now - this.lastUserDragEnd > 1800
+    ) {
+      // Orbit camera east-to-west around +Y so Earth rotates physically west-to-east without shifting ECEF coordinates.
+      this.camera.position.applyAxisAngle(this.polarAxis, -0.045 * frameDt);
     }
     this.controls.enabled = !this.cameraTween && !this.cruise && !activeSequence;
     this.controls.update();
@@ -368,6 +391,7 @@ export class Observatory {
     if (this.disposed) return;
     const shouldRun = this.hostVisible && this.tabVisible;
     if (shouldRun && !this.animation) {
+      this.lastFrameNow = performance.now();
       this.animation = requestAnimationFrame(this.frame);
     } else if (!shouldRun && this.animation) {
       cancelAnimationFrame(this.animation);
@@ -419,7 +443,8 @@ export class Observatory {
     return best?.event;
   }
 
-  private onNavigation = () => { this.userNavigated = true; };
+  private onNavigation = () => { this.userNavigated = true; this.dragging = true; };
+  private onNavigationEnd = () => { this.dragging = false; this.lastUserDragEnd = performance.now(); };
   private onPointerDown = (event: PointerEvent) => { this.pointerStart.set(event.clientX, event.clientY); };
   private onPointerLeave = () => {
     this.hoverId = '';
@@ -454,7 +479,7 @@ export class Observatory {
     return {
       ready: this.ready, utc: this.clock.read(), solar: { lat: solar.lat, lon: solar.lon },
       cameraDistance: this.camera.position.length(), far: this.camera.far,
-      dimensional: this.sequence.sample(performance.now()), cruise: this.cruise, controlsEnabled: this.controls.enabled,
+      dimensional: this.sequence.sample(performance.now()), cruise: this.cruise, autoRotate: this.autoRotate, controlsEnabled: this.controls.enabled,
       lunar: { visible: this.lunarReference.visible, opacity: this.lunarReference.material.opacity, radius: this.lunarReference.geometry.attributes.position.getX(0) },
       foil: { visible: this.foil.visible, alpha: this.foil.material.uniforms.uAlpha.value },
       cloudOffset: this.cloudOffset.value, clouds: this.clouds?.visible,
@@ -494,6 +519,7 @@ export class Observatory {
     if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.renderer.domElement.removeEventListener('wheel', this.onWheelCapture, { capture: true });
     this.controls.removeEventListener('start', this.onNavigation);
+    this.controls.removeEventListener('end', this.onNavigationEnd);
     this.controls.dispose();
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove);

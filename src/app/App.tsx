@@ -52,6 +52,7 @@ export default function App() {
   const [noise, setNoise] = useState(true);
   const [quakesEnabled, setQuakesEnabled] = useState(true);
   const [labelsEnabled, setLabelsEnabled] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(true);
   const [hoveredEvent, setHoveredEvent] = useState<NewsItem | null>(null);
   const [surfaceHovered, setSurfaceHovered] = useState(false);
   const [deep, setDeep] = useState(false);
@@ -99,6 +100,7 @@ export default function App() {
 
   useEffect(() => {
     engine.current?.setHighlight(hoveredEvent?.id ?? selectedEvent?.id ?? null);
+    engine.current?.setEventLocked(Boolean(selectedEvent));
   }, [hoveredEvent, selectedEvent]);
 
   useEffect(() => {
@@ -338,6 +340,7 @@ export default function App() {
           <Toggle label="地表标注" checked={labelsEnabled} onChange={setLabelsEnabled} />
           <Toggle label="薄层云系" checked={clouds} onChange={(checked) => { setClouds(checked); engine.current?.setClouds(checked); }} />
           <Toggle label="风场矢量" checked={windEnabled} onChange={setWindEnabled} />
+          <Toggle label="地球自转" checked={autoRotate} onChange={(checked) => { setAutoRotate(checked); engine.current?.setAutoRotate(checked); }} />
         </div>
         <span className="layer-counts" title="当前载入的已定位信号与风场采样点；背面信号不绘制">噪音 {locatedEvents.filter(event => event.kind !== 'quake').length} · 地震 {locatedEvents.filter(event => event.kind === 'quake').length} · 风场 {wind.samples.length}</span>
       </div>

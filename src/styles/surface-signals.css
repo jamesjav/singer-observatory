@@ -19,7 +19,7 @@
 .signal-fixed-meta a{pointer-events:auto;color:#c5b796}
 .signals-hidden a,.signals-hidden button{pointer-events:none}
 .surface-layerbar{position:absolute;left:50%;bottom:175px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:11px;white-space:nowrap}
-.surface-layerbar .layer-controls{display:flex;flex-direction:row;flex-wrap:nowrap;gap:18px;border:0;padding:0;max-width:none}
+.surface-layerbar .layer-controls{display:flex;flex-direction:row;flex-wrap:nowrap;gap:15px;border:0;padding:0;max-width:none}
 .surface-layerbar .layer-toggle{font-size:9px;letter-spacing:.3px;gap:7px}
 .surface-layerbar .toggle-track{width:21px;height:9px}
 .surface-layerbar .toggle-track i{width:3px;height:3px;left:3px}
@@ -54,7 +54,7 @@
   .deep-space .planet-caption{top:calc(50% - 175px)}
   .loading-status{top:calc(50% - 210px)}
   .surface-layerbar{left:20px;right:20px;transform:none;bottom:610px;gap:10px;align-items:flex-start}
-  .surface-layerbar .layer-controls{gap:12px;justify-content:space-between;width:100%}
+  .surface-layerbar .layer-controls{gap:6px;justify-content:space-between;width:100%}
   .surface-layerbar .layer-toggle{font-size:8px;letter-spacing:0;gap:4px;flex-direction:column}
   .surface-layerbar .layer-toggle input{top:12px;right:calc(50% - 14px)}
   .surface-layerbar .layer-counts{font-size:8px;letter-spacing:.4px}
