@@ -8,19 +8,27 @@ export interface Vec3 {
   z: number;
 }
 
+export type DestinyDomain = '地缘安全' | '大国秩序' | '经贸航运' | '科技跃迁' | '社会震荡';
+
+export interface ChaosNewsSignal {
+  item: NewsItem;
+  domain: DestinyDomain;
+  impact: number;
+}
+
 export interface ChaosParameters {
   sigma: number;
   rho: number;
   beta: number;
-  meanEntropy: number;
-  conflictShare: number;
-  naturalShare: number;
+  meanImpact: number;
+  geopoliticalShare: number;
+  economyTechShare: number;
   severeCount: number;
-  totalSignals: number;
+  humanNewsCount: number;
   locatedCount: number;
   regimeLabel: string;
   mode: NewsSnapshot['mode'] | 'loading';
-  highlights: NewsItem[];
+  highlights: ChaosNewsSignal[];
 }
 
 export interface PerturbationMarker {
@@ -72,72 +80,137 @@ function hashSeed(input: string): number {
   return ((hash >>> 0) % 10000) / 10000;
 }
 
+const CLIMATE_SUMMIT_RE = /\bcop\s*\d+\b|climate (?:talks|summit|deal|action|pledge|conference)|zero[- ]waste|气候变化大会|氣候變化大會|气候行动|氣候行動|零废弃物|零廢棄物|气候承诺|氣候承諾/i;
+const GEOPOLITICAL_RE = /\b(?:war|conflict|attack|missile|drone|troops|bombing|explosion|ceasefire|nuclear|hostage|military|army|navy|ship|port|killed|dead|casualties|invasion|border|airstrike)\b|战争|戰爭|冲突|衝突|袭击|襲擊|导弹|導彈|无人机|無人機|爆炸|停火|核|军事|軍事|武装|武裝|边境|邊境|遇难|遇難/i;
+const ORDER_RE = /\b(?:election|vote|protest|strike|sanction|tariff|coup|government|parliament|president|prime minister|summit|treaty|diplomacy|nato|eu|un|coalition|opposition|law|court|shutdown|trump|putin|zelensky|biden|netanyahu|ukraine|russia|israel|gaza|iran|taiwan)\b|选举|選舉|大选|大選|抗议|抗議|罢工|罷工|制裁|关税|關稅|政变|政變|政府|议会|議會|峰会|峰會|条约|條約|外交|谈判|談判|停摆|停擺|总统|總統|总理|總理|中俄|中美|俄乌|俄烏|中东|中東/i;
+const ECONOMY_RE = /\b(?:trade|economy|economic|market|oil|gas|energy|shipping|supply chain|inflation|debt|bank|recession|central bank|dollar|tariff|export|import|billion|million|austerity|budget|food crisis|famine)\b|贸易|貿易|经济|經濟|金融|能源|石油|航运|航運|供应链|供應鏈|通胀|通脹|债务|債務|央行|衰退|危机|危機|粮食|糧食|紧缩|緊縮/i;
+const TECH_RE = /\b(?:ai|artificial intelligence|chip|semiconductor|quantum|space|spacecraft|rocket|orbit|cyber|biotech|robot|fusion|openai|nvidia|model|tech|research)\b|人工智能|人工智慧|大模型|芯片|晶片|半导体|半導體|量子|航天|网络攻击|網絡攻擊|生物|机器人|機器人|科技|算力/i;
+
 /**
- * Deterministically maps the live news + seismic snapshot into Lorenz dynamical parameters.
+ * Scores a real human-world headline by its nonlinear transmission impact on humanity's shared destiny
+ * (geopolitical security, major-power order, trade/supply chains, technology shifts, and social shocks),
+ * intentionally deprioritizing climate-conference press talk so real world news drives the chaos engine.
+ */
+export function evaluateCivilizationSignal(item: NewsItem): ChaosNewsSignal {
+  const text = item.summary;
+  const baseEntropy = Number.isFinite(item.entropy) ? clamp(item.entropy, 0, 1) : 0.22;
+  const isClimateTalk = CLIMATE_SUMMIT_RE.test(text);
+
+  let domain: DestinyDomain = '社会震荡';
+  let score = 0.24 + baseEntropy * 0.25;
+
+  if (GEOPOLITICAL_RE.test(text)) {
+    domain = '地缘安全';
+    score = Math.max(0.74, baseEntropy + 0.14);
+  } else if (ORDER_RE.test(text) && !isClimateTalk) {
+    domain = '大国秩序';
+    score = Math.max(0.64, baseEntropy + 0.1);
+  } else if (ECONOMY_RE.test(text) && !isClimateTalk) {
+    domain = '经贸航运';
+    score = Math.max(0.6, baseEntropy + 0.08);
+  } else if (TECH_RE.test(text) && !isClimateTalk) {
+    domain = '科技跃迁';
+    score = Math.max(0.56, baseEntropy + 0.08);
+  } else if (isClimateTalk) {
+    // Keep climate summit headlines in the feed, but do not let them hijack global geopolitical chaos.
+    domain = '社会震荡';
+    score = 0.26;
+  } else if (item.tag === '局部摩擦') {
+    domain = '地缘安全';
+    score = Math.max(0.68, baseEntropy);
+  } else if (item.tag === '秩序震荡') {
+    domain = '大国秩序';
+    score = Math.max(0.58, baseEntropy);
+  } else if (item.tag === '技术跃迁') {
+    domain = '科技跃迁';
+    score = Math.max(0.54, baseEntropy);
+  }
+
+  // Slight boost for geo-located stories so users can jump straight to the Earth coordinate.
+  if (typeof item.lat === 'number' && typeof item.lon === 'number' && !isClimateTalk) {
+    score += 0.05;
+  }
+
+  return {
+    item,
+    domain,
+    impact: Number(clamp(score, 0.15, 0.99).toFixed(2)),
+  };
+}
+
+/**
+ * Deterministically maps real human civilization news from the live News API into Lorenz parameters.
  * Classic chaos onset for sigma=10, beta=8/3 is rho_c ≈ 24.74; standard butterfly is rho=28.
  */
 export function deriveChaosParameters(snapshot: NewsSnapshot | null): ChaosParameters {
-  const events = snapshot?.events ?? [];
-  if (!events.length) {
+  const allEvents = snapshot?.events ?? [];
+  // Drive the human-destiny chaos system with real news headlines (not routine micro-quakes).
+  const humanNews = allEvents.filter((item) => item.kind !== 'quake');
+  if (!humanNews.length) {
     return {
       sigma: 10.0,
       rho: 27.6,
       beta: 2.667,
-      meanEntropy: 0.28,
-      conflictShare: 0.18,
-      naturalShare: 0.16,
+      meanImpact: 0.32,
+      geopoliticalShare: 0.22,
+      economyTechShare: 0.18,
       severeCount: 0,
-      totalSignals: 0,
+      humanNewsCount: 0,
       locatedCount: 0,
-      regimeLabel: '等待外部频段',
+      regimeLabel: '等待新闻频段',
       mode: snapshot?.mode ?? 'loading',
       highlights: [],
     };
   }
 
-  let entropySum = 0;
-  let conflictCount = 0;
-  let naturalCount = 0;
+  const scored = humanNews.map(evaluateCivilizationSignal);
+  let impactSum = 0;
+  let geoCount = 0;
+  let ecoTechCount = 0;
   let severeCount = 0;
   let locatedCount = 0;
 
-  for (const item of events) {
-    const e = Number.isFinite(item.entropy) ? clamp(item.entropy, 0, 1) : 0.2;
-    entropySum += e;
-    if (item.tag === '局部摩擦' || item.tag === '秩序震荡') conflictCount++;
-    if (item.kind === 'quake' || item.tag === '灾变扰动' || item.tag === '地壳微震') naturalCount++;
-    if (e > 0.72) severeCount++;
-    if (typeof item.lat === 'number' && typeof item.lon === 'number') locatedCount++;
+  for (const signal of scored) {
+    impactSum += signal.impact;
+    if (signal.domain === '地缘安全' || signal.domain === '大国秩序') geoCount++;
+    if (signal.domain === '经贸航运' || signal.domain === '科技跃迁') ecoTechCount++;
+    if (signal.impact >= 0.74) severeCount++;
+    if (typeof signal.item.lat === 'number' && typeof signal.item.lon === 'number') locatedCount++;
   }
 
-  const total = events.length;
-  const meanEntropy = entropySum / total;
-  const conflictShare = conflictCount / total;
-  const naturalShare = naturalCount / total;
+  const total = scored.length;
+  const meanImpact = impactSum / total;
+  const geopoliticalShare = geoCount / total;
+  const economyTechShare = ecoTechCount / total;
   const severeDensity = severeCount / total;
 
-  // Map live global telemetry into physically meaningful Lorenz chaos ranges.
-  const rho = Number(clamp(25.2 + meanEntropy * 11.5 + severeDensity * 18, 25.0, 35.5).toFixed(2));
-  const sigma = Number(clamp(9.4 + conflictShare * 4.2, 9.2, 13.5).toFixed(2));
-  const beta = Number(clamp(2.25 + naturalShare * 1.15, 2.15, 3.35).toFixed(3));
+  // Map live human-world news dynamics into physically meaningful Lorenz chaos ranges.
+  const rho = Number(clamp(25.0 + meanImpact * 9.8 + severeDensity * 8.5, 25.2, 35.5).toFixed(2));
+  const sigma = Number(clamp(9.4 + geopoliticalShare * 4.5, 9.2, 13.8).toFixed(2));
+  const beta = Number(clamp(2.3 + economyTechShare * 1.4, 2.2, 3.35).toFixed(3));
 
   const regimeLabel =
     rho >= 31.2 ? '强非线性分叉' :
     rho >= 27.8 ? '双翼混沌跃迁' :
     '临界边缘吸引';
 
-  const ranked = [...events].sort((a, b) =>
-    (b.entropy - a.entropy) ||
-    ((typeof b.lat === 'number' ? 1 : 0) - (typeof a.lat === 'number' ? 1 : 0)) ||
-    ((Date.parse(b.publishedAt ?? '') || 0) - (Date.parse(a.publishedAt ?? '') || 0)),
+  const ranked = [...scored].sort((a, b) =>
+    (b.impact - a.impact) ||
+    ((typeof b.item.lat === 'number' ? 1 : 0) - (typeof a.item.lat === 'number' ? 1 : 0)) ||
+    ((Date.parse(b.item.publishedAt ?? '') || 0) - (Date.parse(a.item.publishedAt ?? '') || 0)),
   );
-  const highlights: NewsItem[] = [];
+
+  // Pick a balanced cross-section of global news across domains and sources (avoiding single-topic flooding).
+  const highlights: ChaosNewsSignal[] = [];
+  const domainCounts = new Map<DestinyDomain, number>();
   const sourceCounts = new Map<string, number>();
+
   for (const candidate of ranked) {
     if (highlights.length >= 6) break;
-    const used = sourceCounts.get(candidate.source) ?? 0;
-    if (used >= 2) continue;
-    sourceCounts.set(candidate.source, used + 1);
+    if ((domainCounts.get(candidate.domain) ?? 0) >= 2) continue;
+    if ((sourceCounts.get(candidate.item.source) ?? 0) >= 2) continue;
+    domainCounts.set(candidate.domain, (domainCounts.get(candidate.domain) ?? 0) + 1);
+    sourceCounts.set(candidate.item.source, (sourceCounts.get(candidate.item.source) ?? 0) + 1);
     highlights.push(candidate);
   }
   for (const candidate of ranked) {
@@ -149,11 +222,11 @@ export function deriveChaosParameters(snapshot: NewsSnapshot | null): ChaosParam
     sigma,
     rho,
     beta,
-    meanEntropy,
-    conflictShare,
-    naturalShare,
+    meanImpact,
+    geopoliticalShare,
+    economyTechShare,
     severeCount,
-    totalSignals: total,
+    humanNewsCount: total,
     locatedCount,
     regimeLabel,
     mode: snapshot?.mode ?? 'live',
@@ -223,22 +296,24 @@ export class LorenzEngine {
     if (clearTrigger) this.activeTrigger = null;
   }
 
-  recordMarker(item: NewsItem) {
+  recordMarker(item: NewsItem, domainLabel?: string) {
+    const signal = evaluateCivilizationSignal(item);
     this.activeTrigger = item;
     this.markers.push({
       point: { ...this.p },
-      label: item.settlement !== '未定位' ? `${item.settlement} · ${item.tag}` : item.tag,
+      label: item.settlement !== '未定位' ? `${item.settlement} · ${domainLabel ?? signal.domain}` : (domainLabel ?? signal.domain),
       source: item.source,
-      entropy: item.entropy,
+      entropy: signal.impact,
       age: 0,
     });
     if (this.markers.length > 5) this.markers.shift();
   }
 
   injectPerturbation(item?: NewsItem | null) {
+    const signal = item ? evaluateCivilizationSignal(item) : null;
     const seed = item ? hashSeed(`${item.id}:${item.summary}`) : Math.random();
     const angle = seed * Math.PI * 2;
-    const scale = this.initialEps * (1 + (item?.entropy ?? 0.35) * 1.8);
+    const scale = this.initialEps * (1 + (signal?.impact ?? 0.45) * 1.8);
     // Reset shadow right onto primary + tiny deterministic butterfly perturbation.
     this.s = {
       x: this.p.x + Math.cos(angle) * scale,
@@ -250,7 +325,7 @@ export class LorenzEngine {
     this.lyapunovSum = 0;
     this.lyapunovSamples = 0;
     this.elapsed = 0;
-    if (item) this.recordMarker(item);
+    if (item) this.recordMarker(item, signal?.domain);
   }
 
   step(params: Pick<ChaosParameters, 'sigma' | 'rho' | 'beta'>, substeps = 3, dt = 0.0055): LorenzSnapshot {
@@ -318,15 +393,15 @@ export class ThreeBodyEngine {
   private readonly softeningSq = 0.065 * 0.065;
 
   constructor() {
-    this.reset(0.28);
+    this.reset(0.32);
   }
 
   /**
-   * Starts near the famous Moore-Chenciner Figure-8 periodic solution and applies a tiny
-   * news-entropy perturbation so a brief Stable Era (恒纪元) organically breaks into a Chaotic Era (乱纪元).
+   * Starts near the Moore-Chenciner Figure-8 periodic solution and applies a tiny
+   * global-news perturbation so a brief Stable Era (恒纪元) organically breaks into a Chaotic Era (乱纪元).
    */
-  reset(entropyPerturbation = 0.28, seed = 0.42) {
-    const eps = 0.015 + clamp(entropyPerturbation, 0, 1) * 0.09;
+  reset(newsImpact = 0.32, seed = 0.42) {
+    const eps = 0.015 + clamp(newsImpact, 0, 1) * 0.09;
     const vx = 0.347111;
     const vy = 0.532728;
     const angle = (seed - 0.5) * 0.35;
@@ -376,7 +451,7 @@ export class ThreeBodyEngine {
     return acc;
   }
 
-  step(entropyPerturbation = 0.28, substeps = 3, dt = 0.008): ThreeBodySnapshot {
+  step(newsImpact = 0.32, substeps = 3, dt = 0.008): ThreeBodySnapshot {
     for (let s = 0; s < substeps; s++) {
       const p0 = this.bodies.map((b) => b.pos);
       const v0 = this.bodies.map((b) => b.vel);
@@ -409,7 +484,7 @@ export class ThreeBodyEngine {
       }
       if (escaped) {
         this.restarts++;
-        this.reset(entropyPerturbation, ((this.restarts * 0.37) % 1));
+        this.reset(newsImpact, ((this.restarts * 0.37) % 1));
         break;
       }
       this.elapsed += dt;

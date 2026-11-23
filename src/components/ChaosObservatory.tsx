@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { NewsItem, NewsSnapshot } from '../data/providers/types';
 import { isLocated } from '../data/providers/news';
-import { LorenzEngine, ThreeBodyEngine, deriveChaosParameters } from '../simulation/chaos';
-import type { ChaosModel, Vec3 } from '../simulation/chaos';
+import { LorenzEngine, ThreeBodyEngine, deriveChaosParameters, evaluateCivilizationSignal } from '../simulation/chaos';
+import type { ChaosModel, ChaosNewsSignal, Vec3 } from '../simulation/chaos';
 
 interface Props {
   snapshot: NewsSnapshot | null;
@@ -83,8 +83,9 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
   useEffect(() => {
     if (!selectedEvent || selectedEvent.id === lastInjectedId.current) return;
     lastInjectedId.current = selectedEvent.id;
+    const signal = evaluateCivilizationSignal(selectedEvent);
     lorenzRef.current?.injectPerturbation(selectedEvent);
-    threeBodyRef.current?.reset(selectedEvent.entropy, (selectedEvent.id.charCodeAt(0) % 100) / 100);
+    threeBodyRef.current?.reset(signal.impact, (selectedEvent.id.charCodeAt(0) % 100) / 100);
     setMetrics((prev) => ({ ...prev, activeTrigger: selectedEvent }));
   }, [selectedEvent]);
 
@@ -92,9 +93,9 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
   useEffect(() => {
     if (!params.highlights.length || lastInjectedId.current) return;
     const first = params.highlights[0];
-    lastInjectedId.current = first.id;
-    lorenzRef.current?.recordMarker(first);
-    setMetrics((prev) => ({ ...prev, activeTrigger: first }));
+    lastInjectedId.current = first.item.id;
+    lorenzRef.current?.recordMarker(first.item, first.domain);
+    setMetrics((prev) => ({ ...prev, activeTrigger: first.item }));
   }, [params.highlights]);
 
   useEffect(() => {
@@ -111,10 +112,10 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
     return () => observer.disconnect();
   }, [hidden]);
 
-  const handleInject = (item?: NewsItem) => {
-    const target = item ?? params.highlights[0] ?? null;
+  const handleInject = (signal?: ChaosNewsSignal) => {
+    const target = signal ?? params.highlights[0] ?? null;
     if (model === 'lorenz') {
-      lorenzRef.current?.injectPerturbation(target);
+      lorenzRef.current?.injectPerturbation(target?.item ?? null);
       const state = lorenzRef.current?.read();
       if (state) {
         setMetrics((prev) => ({
@@ -126,9 +127,9 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
         }));
       }
     } else {
-      const entropy = target?.entropy ?? params.meanEntropy;
-      const seed = target ? ((target.id.charCodeAt(0) + target.summary.length) % 97) / 97 : Math.random();
-      threeBodyRef.current?.reset(entropy, seed);
+      const impact = target?.impact ?? params.meanImpact;
+      const seed = target ? ((target.item.id.charCodeAt(0) + target.item.summary.length) % 97) / 97 : Math.random();
+      threeBodyRef.current?.reset(impact, seed);
       const state = threeBodyRef.current?.read();
       if (state) {
         setMetrics((prev) => ({
@@ -136,7 +137,7 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
           era: state.era,
           minDistance: state.minDistance,
           chaosIndex: state.chaosIndex,
-          activeTrigger: target,
+          activeTrigger: target?.item ?? null,
         }));
       }
     }
@@ -146,7 +147,7 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
     if (model === 'lorenz') {
       lorenzRef.current?.reset(false);
     } else {
-      threeBodyRef.current?.reset(params.meanEntropy, 0.31);
+      threeBodyRef.current?.reset(params.meanImpact, 0.31);
     }
   };
 
@@ -319,7 +320,7 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
 
     const drawThreeBody = (w: number, h: number) => {
       const engine = threeBodyRef.current!;
-      const state = paused || !inView ? engine.read() : engine.step(paramsRef.current.meanEntropy, 3, 0.008);
+      const state = paused || !inView ? engine.read() : engine.step(paramsRef.current.meanImpact, 3, 0.008);
       const cx = w * 0.5;
       const cy = h * 0.5;
       const scale = Math.min(w, h) * 0.21;
@@ -448,15 +449,15 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
     <section id="chaos-observatory" ref={sectionRef} className="chaos-section" aria-label="混沌系统相空间观测" data-testid="chaos-section">
       <header className="chaos-header">
         <div>
-          <div className="eyebrow"><span className="section-number">04</span> 混沌动力学 / NONLINEAR PHASE SPACE</div>
-          <h2>文明噪音与混沌吸引子<span className="title-dot">.</span></h2>
+          <div className="eyebrow"><span className="section-number">04</span> 人类命运共同体 · 混沌相空间 / SHARED DESTINY CHAOS</div>
+          <h2>全球真实新闻与文明混沌<span className="title-dot">.</span></h2>
           <p className="chaos-subtitle">
-            实时新闻 API 的冲突、灾变与地震熵值直接耦合微分方程参数；初值仅差 10⁻³ 的两条轨线将在蝴蝶效应下指数级分叉。
+            由全球实时政治、冲突、外交、经贸与科技新闻直接耦合驱动——在高度互联的人类命运共同体里，任意一处局势的微小扰动（Δ = 10⁻³）都会在非线性相空间里扇动蝴蝶翅膀，引发指数级分叉。
           </p>
         </div>
         <div className="chaos-header-actions">
           <div className="chaos-tabs" role="tablist" aria-label="混沌模型切换">
-            <button role="tab" aria-selected={model === 'lorenz'} data-testid="chaos-mode-lorenz" onClick={() => setModel('lorenz')}>洛伦兹大气混沌</button>
+            <button role="tab" aria-selected={model === 'lorenz'} data-testid="chaos-mode-lorenz" onClick={() => setModel('lorenz')}>文明混沌相空间</button>
             <button role="tab" aria-selected={model === 'three-body'} data-testid="chaos-mode-threebody" onClick={() => setModel('three-body')}>三体引力混沌</button>
           </div>
           <button className="chaos-return" onClick={onBackToEarth}>↑ 返回地球观测</button>
@@ -530,30 +531,30 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
         <aside className="chaos-sidebar">
           <div className="chaos-panel">
             <div className="section-heading">
-              <span className="section-number">A</span> 新闻 API 实时耦合参数
+              <span className="section-number">A</span> 真实新闻 API 实时耦合参数
               <span className="micro-tag">{params.mode === 'demo' ? '演示' : params.mode === 'cached' ? '缓存' : '实源'}</span>
             </div>
 
             <div className="chaos-metrics-grid">
               <div>
-                <span className="eyebrow">瑞利扰动 ρ</span>
+                <span className="eyebrow">文明扰动度 ρ</span>
                 <strong data-testid="chaos-rho">{params.rho.toFixed(2)}</strong>
                 <small>混沌阈值 24.74 · {params.regimeLabel}</small>
               </div>
               <div>
-                <span className="eyebrow">摩擦耦合 σ</span>
+                <span className="eyebrow">地缘耦合度 σ</span>
                 <strong>{params.sigma.toFixed(2)}</strong>
-                <small>冲突/震荡占比 {(params.conflictShare * 100).toFixed(0)}%</small>
+                <small>地缘/秩序新闻占比 {(params.geopoliticalShare * 100).toFixed(0)}%</small>
               </div>
               <div>
-                <span className="eyebrow">自然耗散 β</span>
+                <span className="eyebrow">经贸与科技 β</span>
                 <strong>{params.beta.toFixed(3)}</strong>
-                <small>地震/灾变占比 {(params.naturalShare * 100).toFixed(0)}%</small>
+                <small>经贸/科技新闻占比 {(params.economyTechShare * 100).toFixed(0)}%</small>
               </div>
               <div>
                 <span className="eyebrow">{model === 'lorenz' ? '双翼跃迁' : '当前纪元'}</span>
                 <strong>{model === 'lorenz' ? `${metrics.wingSwitches} 次` : metrics.era}</strong>
-                <small>{params.totalSignals} 条实时信号驱动</small>
+                <small>{params.humanNewsCount} 条真实国际新闻驱动</small>
               </div>
             </div>
 
@@ -566,28 +567,28 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
 
           <div className="chaos-panel chaos-feed-panel">
             <div className="section-heading">
-              <span className="section-number">B</span> 高熵新闻微扰注入台
+              <span className="section-number">B</span> 影响人类命运共同体的实时新闻
             </div>
             <p className="chaos-feed-note">
-              点击任意一条实时新闻，以其熵值与坐标作为一次蝴蝶微扰注入混沌系统；可联动飞回上方地球定位事发地。
+              按地缘安全、大国秩序、经贸航运与科技跃迁实时筛选（已过滤常规气候峰会空谈与微震）；点击任意一条注入混沌微扰，或飞回地球查看事发地。
             </p>
             <div className="chaos-event-list">
-              {params.highlights.map((item) => (
-                <div className={`chaos-event-row ${metrics.activeTrigger?.id === item.id ? 'is-active' : ''}`} key={item.id}>
-                  <button className="chaos-event-trigger" onClick={() => handleInject(item)} title="点击注入蝴蝶微扰">
-                    <span className="chaos-event-title">{item.kind === 'quake' ? '◎ ' : ''}{item.summary}</span>
+              {params.highlights.map((signal) => (
+                <div className={`chaos-event-row ${metrics.activeTrigger?.id === signal.item.id ? 'is-active' : ''}`} key={signal.item.id}>
+                  <button className="chaos-event-trigger" onClick={() => handleInject(signal)} title="点击将这条真实新闻注入混沌系统">
+                    <span className="chaos-event-title">{signal.item.summary}</span>
                     <small>
-                      <span>{item.source} · {item.settlement}</span>
-                      <span className={item.entropy > 0.72 ? 'anomaly-value' : ''}>熵 {item.entropy.toFixed(2)}</span>
+                      <span>{signal.domain} · {signal.item.source}{signal.item.settlement !== '未定位' ? ` · ${signal.item.settlement}` : ''}</span>
+                      <span className={signal.impact >= 0.74 ? 'anomaly-value' : ''}>冲击 {signal.impact.toFixed(2)}</span>
                     </small>
                   </button>
-                  {isLocated(item) && (
+                  {isLocated(signal.item) && (
                     <button
                       className="chaos-event-locate"
                       title="返回地球聚焦该事件坐标"
                       onClick={() => {
-                        handleInject(item);
-                        onFocusOnEarth(item);
+                        handleInject(signal);
+                        onFocusOnEarth(signal.item);
                       }}
                     >
                       地球 ↗
@@ -595,7 +596,7 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
                   )}
                 </div>
               ))}
-              {params.highlights.length === 0 && <p className="quiet-copy">外部频段接入后自动载入高熵新闻微扰源。</p>}
+              {params.highlights.length === 0 && <p className="quiet-copy">外部频段接入后自动载入全球重大新闻。</p>}
             </div>
           </div>
         </aside>
@@ -603,7 +604,7 @@ export function ChaosObservatory({ snapshot, selectedEvent, hidden, onFocusOnEar
 
       <footer className="chaos-philosophy">
         <p>
-          人类以为历史沿黑格尔或福山的直线走向终点，实则每一次微小争端都在非线性相空间里扇动翅膀——对初值的极端敏感，让任何终局预言在数个李雅普诺夫时间后坍塌为不可预测的混沌。
+          在高度互联的人类命运共同体里，早已不存在孤立的“局部新闻”。黑格尔与福山曾设想历史会走向线性终局，但在真实世界的非线性相空间里，一场航运遇袭、一次选举博弈、一轮贸易震荡或一项技术跃迁，都在实时改写全人类共同的轨道。
         </p>
       </footer>
     </section>

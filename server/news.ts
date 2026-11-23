@@ -80,14 +80,14 @@ export function classify(text: string): Pick<NewsItem, 'tag' | 'entropy'> {
   const hypothetical = /\b(?:drill|simulation|could|might|averted|prevented|no|not|fear|fears|risk|threat)\b|演习|演習|模拟|模擬|可能|避免|威胁|威脅|未发生|未發生/i.test(text);
   let tag: NewsItem['tag'] = '表面喧嚣';
   let entropy = 0.22;
-  if (/earthquake|flood|tsunami|hurricane|wildfire|drought|climate|地震|洪水|洪灾|洪災|海啸|海嘯|飓风|颶風|台风|颱風|山火|干旱|乾旱|气候|氣候/i.test(text)) {
-    tag = '灾变扰动'; entropy = 0.64;
-  } else if (/\b(?:war|conflict|attack|strike|missile|troops|bombing|killed|dead|casualties)\b|战争|戰爭|冲突|衝突|袭击|襲擊|导弹|導彈|死亡|遇难|遇難|核打击|核打擊/i.test(text)) {
-    tag = '局部摩擦'; entropy = 0.61;
-  } else if (/election|protest|sanction|coup|government|parliament|选举|選舉|抗议|抗議|制裁|政变|政變|政府|议会|議會/i.test(text)) {
-    tag = '秩序震荡'; entropy = 0.48;
-  } else if (/\b(?:technology|AI|artificial intelligence|chip|quantum|spacecraft|research)\b|科技|技术|技術|人工智能|人工智慧|芯片|晶片|量子|航天|科研/i.test(text)) {
-    tag = '技术跃迁'; entropy = 0.42;
+  if (/\b(?:war|conflict|attack|strike|missile|drone|troops|bombing|explosion|killed|dead|casualties|ceasefire)\b|战争|戰爭|冲突|衝突|袭击|襲擊|导弹|導彈|无人机|無人機|爆炸|死亡|遇难|遇難|停火|核打击|核打擊/i.test(text)) {
+    tag = '局部摩擦'; entropy = 0.68;
+  } else if (/earthquake|flood|tsunami|hurricane|wildfire|drought|volcano|地震|洪水|洪灾|洪災|海啸|海嘯|飓风|颶風|台风|颱風|山火|干旱|乾旱|火山/i.test(text)) {
+    tag = '灾变扰动'; entropy = 0.62;
+  } else if (/election|protest|sanction|tariff|coup|government|parliament|summit|treaty|diplomacy|economy|trade|inflation|recession|选举|選舉|抗议|抗議|制裁|关税|關稅|政变|政變|政府|议会|議會|峰会|峰會|条约|條約|外交|贸易|貿易|经济|經濟|罢工|罷工/i.test(text)) {
+    tag = '秩序震荡'; entropy = 0.56;
+  } else if (/\b(?:technology|AI|artificial intelligence|chip|semiconductor|quantum|spacecraft|research)\b|科技|技术|技術|人工智能|人工智慧|芯片|晶片|半导体|半導體|量子|航天|科研/i.test(text)) {
+    tag = '技术跃迁'; entropy = 0.48;
   }
   if (severe && !hypothetical) entropy = /thousands|数千|數千|nuclear|核打|核襲|核袭/i.test(text) ? 0.98 : 0.9;
   return { tag, entropy };
