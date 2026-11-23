@@ -44,23 +44,19 @@ export function OpeningPrologue({ onEnter }: Props) {
         </div>
 
         <div className="prologue-lines">
-          <p className="prologue-p1">
-            从黑格尔相信历史将在人类理性中抵达静止，<br />
-            到福山宣告世界步入「历史的终结」——<br />
-            <span>人类总习惯把自己的争端与输赢，当成宇宙的中心。</span>
+          <p className="prologue-p1 prologue-hook">
+            <strong>这里不是动画，而是此刻正在发生的真实地球。</strong><br />
+            <span>真实日照阴影、全球实时新闻、刚刚发生的地震与当地天气，正在这颗星球上同步运转。</span>
           </p>
 
           <p className="prologue-p2">
-            但退远到《三体》歌者文明的视线里，<br />
-            我们全部的战争、新闻与悲欢，<br />
-            都被困在厚仅 100 公里、不足地球半径 <strong>1.57%</strong> 的大气薄层内；<br />
-            <span>在宇宙尺度上，轰轰烈烈的历史不过是一阵微弱噪音，随时可能被一片「二向箔」顺手归档。</span>
+            从黑格尔将历史视为理性的宏大辩证，到福山宣告世界收敛于「历史的终结」，<br />
+            <span>人类总以为文明终将驶入某种永恒的「恒纪元」。</span>
           </p>
 
           <p className="prologue-p3">
-            <strong>这里呈现的不是动画，而是此刻正在发生的真实地球：</strong><br />
-            全球实时新闻、真实地震、真实日照阴影与实时天气。<br />
-            <span>借宇宙的冷眼照见渺小，也凝视黑夜里脆弱而微弱的灯火。</span>
+            向外看，在《三体》歌者文明的视线里，地球不过是厚仅 100 公里（不足半径 <strong>1.57%</strong>）的薄壳微尘，随时可被一片「二向箔」归档；<br />
+            <span>向内看，这层薄壳却是一台强耦合的混沌机器——球面之上，从未有过孤立的局部噪音。</span>
           </p>
         </div>
 
@@ -69,15 +65,15 @@ export function OpeningPrologue({ onEnter }: Props) {
             进入观测 <span aria-hidden="true">↗</span>
           </button>
           <p className="prologue-legend">
-            <span>● 白色/琥珀微点与引线 · 全球实时新闻</span>
-            <b>/</b>
+            <span>● 地球微点引线 · 实时新闻</span>
+            <b>·</b>
             <span>◎ 扩散细环 · 实时地震</span>
-            <b>/</b>
+            <b>·</b>
             <span>＋ 点选地表 · 实时天气</span>
-            <b>/</b>
-            <span>∞ 下方 · 新闻耦合混沌系统</span>
-            <b>/</b>
-            <span>▭ 右上角 · 二向箔清理预演</span>
+            <b>·</b>
+            <span>∞ 下方 · 蝴蝶效应与三体混沌</span>
+            <b>·</b>
+            <span>▭ 右上角 · 二向箔预演</span>
           </p>
         </div>
       </div>

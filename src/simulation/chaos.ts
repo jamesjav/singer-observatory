@@ -14,6 +14,7 @@ export interface ChaosNewsSignal {
   item: NewsItem;
   domain: DestinyDomain;
   impact: number;
+  isChinese: boolean;
 }
 
 export interface ChaosParameters {
@@ -29,6 +30,7 @@ export interface ChaosParameters {
   regimeLabel: string;
   mode: NewsSnapshot['mode'] | 'loading';
   highlights: ChaosNewsSignal[];
+  allSignals: ChaosNewsSignal[];
 }
 
 export interface PerturbationMarker {
@@ -37,6 +39,7 @@ export interface PerturbationMarker {
   source: string;
   entropy: number;
   age: number;
+  pulseAge: number;
 }
 
 export interface LorenzSnapshot {
@@ -46,6 +49,8 @@ export interface LorenzSnapshot {
   markers: readonly PerturbationMarker[];
   separation: number;
   lyapunov: number;
+  predictionHorizon: number;
+  impulseRho: number;
   wingSwitches: number;
   elapsed: number;
   activeTrigger: NewsItem | null;
@@ -62,16 +67,21 @@ export interface BodyTrail {
 
 export interface ThreeBodySnapshot {
   bodies: readonly BodyTrail[];
+  chaosHistory: readonly number[];
   minDistance: number;
+  maxRadius: number;
   chaosIndex: number;
   era: '恒纪元' | '乱纪元';
+  stableDuration: number;
+  perturbationEps: number;
   elapsed: number;
   restarts: number;
+  justRestarted: boolean;
 }
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
-function hashSeed(input: string): number {
+export function hashSeed(input: string): number {
   let hash = 2166136261;
   for (let i = 0; i < input.length; i++) {
     hash ^= input.charCodeAt(i);
@@ -80,41 +90,48 @@ function hashSeed(input: string): number {
   return ((hash >>> 0) % 10000) / 10000;
 }
 
+const HAS_HAN_RE = /\p{Script=Han}/u;
 const CLIMATE_SUMMIT_RE = /\bcop\s*\d+\b|climate (?:talks|summit|deal|action|pledge|conference)|zero[- ]waste|气候变化大会|氣候變化大會|气候行动|氣候行動|零废弃物|零廢棄物|气候承诺|氣候承諾/i;
+const ENTERTAINMENT_RE = /\b(?:concert|album|box office|netflix|oscars|grammy|celebrity|rapper|pop star|premier league|champions league|football|soccer|nba|nfl)\b|演唱会|演唱會|票房|明星|球赛|球賽/i;
 const GEOPOLITICAL_RE = /\b(?:war|conflict|attack|missile|drone|troops|bombing|explosion|ceasefire|nuclear|hostage|military|army|navy|ship|port|killed|dead|casualties|invasion|border|airstrike)\b|战争|戰爭|冲突|衝突|袭击|襲擊|导弹|導彈|无人机|無人機|爆炸|停火|核|军事|軍事|武装|武裝|边境|邊境|遇难|遇難/i;
 const ORDER_RE = /\b(?:election|vote|protest|strike|sanction|tariff|coup|government|parliament|president|prime minister|summit|treaty|diplomacy|nato|eu|un|coalition|opposition|law|court|shutdown|trump|putin|zelensky|biden|netanyahu|ukraine|russia|israel|gaza|iran|taiwan)\b|选举|選舉|大选|大選|抗议|抗議|罢工|罷工|制裁|关税|關稅|政变|政變|政府|议会|議會|峰会|峰會|条约|條約|外交|谈判|談判|停摆|停擺|总统|總統|总理|總理|中俄|中美|俄乌|俄烏|中东|中東/i;
 const ECONOMY_RE = /\b(?:trade|economy|economic|market|oil|gas|energy|shipping|supply chain|inflation|debt|bank|recession|central bank|dollar|tariff|export|import|billion|million|austerity|budget|food crisis|famine)\b|贸易|貿易|经济|經濟|金融|能源|石油|航运|航運|供应链|供應鏈|通胀|通脹|债务|債務|央行|衰退|危机|危機|粮食|糧食|紧缩|緊縮/i;
 const TECH_RE = /\b(?:ai|artificial intelligence|chip|semiconductor|quantum|space|spacecraft|rocket|orbit|cyber|biotech|robot|fusion|openai|nvidia|model|tech|research)\b|人工智能|人工智慧|大模型|芯片|晶片|半导体|半導體|量子|航天|网络攻击|網絡攻擊|生物|机器人|機器人|科技|算力/i;
 
+export function isChineseHeadline(item: Pick<NewsItem, 'summary'>): boolean {
+  return HAS_HAN_RE.test(item.summary);
+}
+
 /**
- * Scores a real human-world headline by its nonlinear transmission impact on humanity's shared destiny
- * (geopolitical security, major-power order, trade/supply chains, technology shifts, and social shocks),
- * intentionally deprioritizing climate-conference press talk so real world news drives the chaos engine.
+ * Evaluates a real human-world headline's nonlinear perturbation weight across five
+ * civilization-coupling domains (geopolitical security, major-power order, trade/logistics,
+ * technology shifts, and social shocks).
  */
 export function evaluateCivilizationSignal(item: NewsItem): ChaosNewsSignal {
   const text = item.summary;
   const baseEntropy = Number.isFinite(item.entropy) ? clamp(item.entropy, 0, 1) : 0.22;
   const isClimateTalk = CLIMATE_SUMMIT_RE.test(text);
+  const isEntertainment = ENTERTAINMENT_RE.test(text);
+  const isChinese = isChineseHeadline(item);
 
   let domain: DestinyDomain = '社会震荡';
-  let score = 0.24 + baseEntropy * 0.25;
+  let score = 0.22 + baseEntropy * 0.24;
 
-  if (GEOPOLITICAL_RE.test(text)) {
+  if (GEOPOLITICAL_RE.test(text) && !isEntertainment) {
     domain = '地缘安全';
     score = Math.max(0.74, baseEntropy + 0.14);
-  } else if (ORDER_RE.test(text) && !isClimateTalk) {
+  } else if (ORDER_RE.test(text) && !isClimateTalk && !isEntertainment) {
     domain = '大国秩序';
     score = Math.max(0.64, baseEntropy + 0.1);
-  } else if (ECONOMY_RE.test(text) && !isClimateTalk) {
+  } else if (ECONOMY_RE.test(text) && !isClimateTalk && !isEntertainment) {
     domain = '经贸航运';
     score = Math.max(0.6, baseEntropy + 0.08);
-  } else if (TECH_RE.test(text) && !isClimateTalk) {
+  } else if (TECH_RE.test(text) && !isClimateTalk && !isEntertainment) {
     domain = '科技跃迁';
     score = Math.max(0.56, baseEntropy + 0.08);
-  } else if (isClimateTalk) {
-    // Keep climate summit headlines in the feed, but do not let them hijack global geopolitical chaos.
+  } else if (isClimateTalk || isEntertainment) {
     domain = '社会震荡';
-    score = 0.26;
+    score = isEntertainment ? 0.18 : 0.26;
   } else if (item.tag === '局部摩擦') {
     domain = '地缘安全';
     score = Math.max(0.68, baseEntropy);
@@ -126,8 +143,7 @@ export function evaluateCivilizationSignal(item: NewsItem): ChaosNewsSignal {
     score = Math.max(0.54, baseEntropy);
   }
 
-  // Slight boost for geo-located stories so users can jump straight to the Earth coordinate.
-  if (typeof item.lat === 'number' && typeof item.lon === 'number' && !isClimateTalk) {
+  if (typeof item.lat === 'number' && typeof item.lon === 'number' && !isClimateTalk && !isEntertainment) {
     score += 0.05;
   }
 
@@ -135,16 +151,17 @@ export function evaluateCivilizationSignal(item: NewsItem): ChaosNewsSignal {
     item,
     domain,
     impact: Number(clamp(score, 0.15, 0.99).toFixed(2)),
+    isChinese,
   };
 }
 
 /**
  * Deterministically maps real human civilization news from the live News API into Lorenz parameters.
- * Classic chaos onset for sigma=10, beta=8/3 is rho_c ≈ 24.74; standard butterfly is rho=28.
+ * Allows calm snapshots to drop below the classic rho_c ≈ 24.74 chaos threshold ("假性恒纪元"),
+ * while geopolitical / order shocks push rho well into the strange-attractor regime.
  */
 export function deriveChaosParameters(snapshot: NewsSnapshot | null): ChaosParameters {
   const allEvents = snapshot?.events ?? [];
-  // Drive the human-destiny chaos system with real news headlines (not routine micro-quakes).
   const humanNews = allEvents.filter((item) => item.kind !== 'quake');
   if (!humanNews.length) {
     return {
@@ -160,6 +177,7 @@ export function deriveChaosParameters(snapshot: NewsSnapshot | null): ChaosParam
       regimeLabel: '等待新闻频段',
       mode: snapshot?.mode ?? 'loading',
       highlights: [],
+      allSignals: [],
     };
   }
 
@@ -184,15 +202,17 @@ export function deriveChaosParameters(snapshot: NewsSnapshot | null): ChaosParam
   const economyTechShare = ecoTechCount / total;
   const severeDensity = severeCount / total;
 
-  // Map live human-world news dynamics into physically meaningful Lorenz chaos ranges.
-  const rho = Number(clamp(25.0 + meanImpact * 9.8 + severeDensity * 8.5, 25.2, 35.5).toFixed(2));
-  const sigma = Number(clamp(9.4 + geopoliticalShare * 4.5, 9.2, 13.8).toFixed(2));
-  const beta = Number(clamp(2.3 + economyTechShare * 1.4, 2.2, 3.35).toFixed(3));
+  // Physically grounded range: calm feeds can drop below rho_c = 24.74; conflicts push past 30+.
+  const rho = Number(clamp(20.2 + meanImpact * 15.8 + severeDensity * 10.5, 22.4, 35.5).toFixed(2));
+  // Higher cross-border geopolitical & order share increases coupling speed sigma.
+  const sigma = Number(clamp(9.2 + geopoliticalShare * 4.6, 9.2, 13.8).toFixed(2));
+  // High conflict drains systemic buffering (lower beta); steady economic/tech coordination stabilizes beta near 8/3.
+  const beta = Number(clamp(2.68 + economyTechShare * 0.65 - severeDensity * 0.72, 2.05, 3.25).toFixed(3));
 
   const regimeLabel =
-    rho >= 31.2 ? '强非线性分叉' :
-    rho >= 27.8 ? '双翼混沌跃迁' :
-    '临界边缘吸引';
+    rho >= 30.8 ? '强非线性分叉' :
+    rho >= 24.74 ? '双翼混沌跃迁' :
+    '准稳态假性恒纪元';
 
   const ranked = [...scored].sort((a, b) =>
     (b.impact - a.impact) ||
@@ -200,23 +220,29 @@ export function deriveChaosParameters(snapshot: NewsSnapshot | null): ChaosParam
     ((Date.parse(b.item.publishedAt ?? '') || 0) - (Date.parse(a.item.publishedAt ?? '') || 0)),
   );
 
-  // Pick a balanced cross-section of global news across domains and sources (avoiding single-topic flooding).
+  // Pick a balanced cross-section with guaranteed Chinese headline visibility when available.
   const highlights: ChaosNewsSignal[] = [];
   const domainCounts = new Map<DestinyDomain, number>();
   const sourceCounts = new Map<string, number>();
 
-  for (const candidate of ranked) {
-    if (highlights.length >= 6) break;
-    if ((domainCounts.get(candidate.domain) ?? 0) >= 2) continue;
-    if ((sourceCounts.get(candidate.item.source) ?? 0) >= 2) continue;
+  const tryAdd = (candidate: ChaosNewsSignal, ignoreLimits = false) => {
+    if (highlights.length >= 6 || highlights.includes(candidate)) return false;
+    if (!ignoreLimits) {
+      if ((domainCounts.get(candidate.domain) ?? 0) >= 2) return false;
+      if ((sourceCounts.get(candidate.item.source) ?? 0) >= 2) return false;
+    }
     domainCounts.set(candidate.domain, (domainCounts.get(candidate.domain) ?? 0) + 1);
     sourceCounts.set(candidate.item.source, (sourceCounts.get(candidate.item.source) ?? 0) + 1);
     highlights.push(candidate);
-  }
-  for (const candidate of ranked) {
-    if (highlights.length >= 6) break;
-    if (!highlights.includes(candidate)) highlights.push(candidate);
-  }
+    return true;
+  };
+
+  // Reserve up to 2 slots for top Chinese-language world news so Chinese visitors can read immediately.
+  const chineseTop = ranked.filter((signal) => signal.isChinese && signal.impact >= 0.45);
+  for (const candidate of chineseTop.slice(0, 2)) tryAdd(candidate);
+  for (const candidate of ranked) tryAdd(candidate);
+  for (const candidate of ranked) tryAdd(candidate, true);
+  highlights.sort((a, b) => b.impact - a.impact);
 
   return {
     sigma,
@@ -231,6 +257,7 @@ export function deriveChaosParameters(snapshot: NewsSnapshot | null): ChaosParam
     regimeLabel,
     mode: snapshot?.mode ?? 'live',
     highlights,
+    allSignals: ranked,
   };
 }
 
@@ -269,6 +296,7 @@ export class LorenzEngine {
   private s: Vec3 = { x: 0.901, y: 1.1, z: 23.0 };
   private lyapunovSum = 0;
   private lyapunovSamples = 0;
+  private impulseRho = 0;
   private wingSwitches = 0;
   private lastSign = 1;
   private elapsed = 0;
@@ -290,6 +318,7 @@ export class LorenzEngine {
     this.markers = [];
     this.lyapunovSum = 0;
     this.lyapunovSamples = 0;
+    this.impulseRho = 0;
     this.wingSwitches = 0;
     this.lastSign = 1;
     this.elapsed = 0;
@@ -305,16 +334,18 @@ export class LorenzEngine {
       source: item.source,
       entropy: signal.impact,
       age: 0,
+      pulseAge: 0,
     });
     if (this.markers.length > 5) this.markers.shift();
   }
 
-  injectPerturbation(item?: NewsItem | null) {
+  injectPerturbation(item?: NewsItem | null, nonce = 0) {
     const signal = item ? evaluateCivilizationSignal(item) : null;
-    const seed = item ? hashSeed(`${item.id}:${item.summary}`) : Math.random();
+    const seed = item ? hashSeed(`${item.id}:${item.summary}:${nonce}`) : ((nonce * 0.381966) % 1);
     const angle = seed * Math.PI * 2;
-    const scale = this.initialEps * (1 + (signal?.impact ?? 0.45) * 1.8);
-    // Reset shadow right onto primary + tiny deterministic butterfly perturbation.
+    const impact = signal?.impact ?? 0.45;
+    const scale = this.initialEps * (1 + impact * 2.0);
+    // Reset shadow right onto primary + tiny butterfly perturbation, AND inject a decaying thermal impulse Δρ.
     this.s = {
       x: this.p.x + Math.cos(angle) * scale,
       y: this.p.y + Math.sin(angle) * scale,
@@ -324,6 +355,7 @@ export class LorenzEngine {
     this.divergenceHistory = [Math.log10(Math.max(1e-6, distance3(this.p, this.s)))];
     this.lyapunovSum = 0;
     this.lyapunovSamples = 0;
+    this.impulseRho = clamp(0.9 + impact * 3.4, 0.9, 4.2);
     this.elapsed = 0;
     if (item) this.recordMarker(item, signal?.domain);
   }
@@ -331,12 +363,16 @@ export class LorenzEngine {
   step(params: Pick<ChaosParameters, 'sigma' | 'rho' | 'beta'>, substeps = 3, dt = 0.0055): LorenzSnapshot {
     const { sigma, rho, beta } = params;
     for (let i = 0; i < substeps; i++) {
+      const effectiveRho = clamp(rho + this.impulseRho, 15, 39);
       const prevDist = Math.max(1e-8, distance3(this.p, this.s));
-      this.p = rk4Lorenz(this.p, dt, sigma, rho, beta);
-      this.s = rk4Lorenz(this.s, dt, sigma, rho, beta);
+      this.p = rk4Lorenz(this.p, dt, sigma, effectiveRho, beta);
+      this.s = rk4Lorenz(this.s, dt, sigma, effectiveRho, beta);
       const nextDist = Math.max(1e-8, distance3(this.p, this.s));
 
-      // Accumulate finite-time exponential separation rate while trajectories are still separating.
+      // Exponentially decay transient news impulse over ~10 simulation units (~10 seconds wall time).
+      if (this.impulseRho > 0.01) this.impulseRho *= Math.exp(-dt * 0.24);
+      else this.impulseRho = 0;
+
       if (prevDist < 12 && nextDist < 22) {
         const localRate = Math.log(nextDist / prevDist) / dt;
         if (Number.isFinite(localRate)) {
@@ -362,7 +398,10 @@ export class LorenzEngine {
     this.divergenceHistory.push(Math.log10(Math.max(1e-4, separation)));
     if (this.divergenceHistory.length > this.maxHistory) this.divergenceHistory.shift();
 
-    for (const marker of this.markers) marker.age += substeps * dt;
+    for (const marker of this.markers) {
+      marker.age += substeps * dt;
+      marker.pulseAge += 1 / 60;
+    }
     if (this.markers.length > 0 && this.markers[0].age > 24) this.markers.shift();
 
     return this.read();
@@ -370,14 +409,18 @@ export class LorenzEngine {
 
   read(): LorenzSnapshot {
     const separation = distance3(this.p, this.s);
-    const lyapunov = this.lyapunovSamples > 8 ? this.lyapunovSum / this.lyapunovSamples : 0.88;
+    const lyapunov = clamp(this.lyapunovSamples > 8 ? this.lyapunovSum / this.lyapunovSamples : 0.88, -1.5, 2.8);
+    // Linear predictability horizon T_λ = ln(10) / λ (capped cleanly when near-periodic).
+    const predictionHorizon = lyapunov > 0.08 ? Math.min(28, Math.log(10) / lyapunov) : 28;
     return {
       primary: this.primary,
       shadow: this.shadow,
       divergenceHistory: this.divergenceHistory,
       markers: this.markers,
       separation,
-      lyapunov: clamp(lyapunov, -1.5, 2.8),
+      lyapunov,
+      predictionHorizon,
+      impulseRho: this.impulseRho,
       wingSwitches: this.wingSwitches,
       elapsed: this.elapsed,
       activeTrigger: this.activeTrigger,
@@ -387,9 +430,14 @@ export class LorenzEngine {
 
 export class ThreeBodyEngine {
   private bodies: BodyTrail[] = [];
+  private chaosHistory: number[] = [];
   private elapsed = 0;
+  private stableDuration = 0;
+  private perturbationEps = 0.04;
   private restarts = 0;
+  private justRestarted = false;
   private readonly maxTrail = 320;
+  private readonly maxHistory = 160;
   private readonly softeningSq = 0.065 * 0.065;
 
   constructor() {
@@ -401,10 +449,11 @@ export class ThreeBodyEngine {
    * global-news perturbation so a brief Stable Era (恒纪元) organically breaks into a Chaotic Era (乱纪元).
    */
   reset(newsImpact = 0.32, seed = 0.42) {
-    const eps = 0.015 + clamp(newsImpact, 0, 1) * 0.09;
+    const eps = 0.015 + clamp(newsImpact, 0, 1) * 0.095;
+    this.perturbationEps = eps;
     const vx = 0.347111;
     const vy = 0.532728;
-    const angle = (seed - 0.5) * 0.35;
+    const angle = (seed - 0.5) * Math.PI * 1.2;
     this.bodies = [
       {
         name: 'α 恒星', color: '#cfd6d8', mass: 1.0,
@@ -426,7 +475,9 @@ export class ThreeBodyEngine {
       },
     ];
     for (const body of this.bodies) body.trail.push({ ...body.pos });
+    this.chaosHistory = [0.05];
     this.elapsed = 0;
+    this.stableDuration = 0;
   }
 
   private accelerations(positions: readonly Vec3[]): Vec3[] {
@@ -452,6 +503,7 @@ export class ThreeBodyEngine {
   }
 
   step(newsImpact = 0.32, substeps = 3, dt = 0.008): ThreeBodySnapshot {
+    this.justRestarted = false;
     for (let s = 0; s < substeps; s++) {
       const p0 = this.bodies.map((b) => b.pos);
       const v0 = this.bodies.map((b) => b.vel);
@@ -475,7 +527,7 @@ export class ThreeBodyEngine {
         const ny = p0[i].y + (dt / 6) * (v0[i].y + 2 * v1[i].y + 2 * v2[i].y + v3[i].y);
         const nvx = v0[i].x + (dt / 6) * (a1[i].x + 2 * a2[i].x + 2 * a3[i].x + a4[i].x);
         const nvy = v0[i].y + (dt / 6) * (a1[i].y + 2 * a2[i].y + 2 * a3[i].y + a4[i].y);
-        if (!Number.isFinite(nx) || !Number.isFinite(ny) || Math.hypot(nx, ny) > 5.8) {
+        if (!Number.isFinite(nx) || !Number.isFinite(ny) || Math.hypot(nx, ny) > 5.2) {
           escaped = true;
           break;
         }
@@ -484,6 +536,7 @@ export class ThreeBodyEngine {
       }
       if (escaped) {
         this.restarts++;
+        this.justRestarted = true;
         this.reset(newsImpact, ((this.restarts * 0.37) % 1));
         break;
       }
@@ -494,6 +547,10 @@ export class ThreeBodyEngine {
       body.trail.push({ ...body.pos });
       if (body.trail.length > this.maxTrail) body.trail.shift();
     }
+    const snap = this.read();
+    if (snap.era === '恒纪元') this.stableDuration += substeps * dt;
+    this.chaosHistory.push(snap.chaosIndex);
+    if (this.chaosHistory.length > this.maxHistory) this.chaosHistory.shift();
     return this.read();
   }
 
@@ -503,16 +560,22 @@ export class ThreeBodyEngine {
     const d20 = distance3(this.bodies[2].pos, this.bodies[0].pos);
     const minDistance = Math.min(d01, d12, d20);
     const maxDistance = Math.max(d01, d12, d20);
+    const maxRadius = Math.max(1.25, ...this.bodies.map((b) => Math.hypot(b.pos.x, b.pos.y)));
     const asymmetry = maxDistance / Math.max(0.15, minDistance);
     const chaosIndex = clamp((asymmetry - 1.4) / 4.2, 0, 1);
     const era: '恒纪元' | '乱纪元' = chaosIndex > 0.34 || minDistance < 0.48 ? '乱纪元' : '恒纪元';
     return {
       bodies: this.bodies,
+      chaosHistory: this.chaosHistory,
       minDistance,
+      maxRadius,
       chaosIndex,
       era,
+      stableDuration: this.stableDuration,
+      perturbationEps: this.perturbationEps,
       elapsed: this.elapsed,
       restarts: this.restarts,
+      justRestarted: this.justRestarted,
     };
   }
 }

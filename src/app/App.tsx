@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SurfaceSignals } from '../components/SurfaceSignals';
 import { Observatory } from '../scene/Observatory';
 import type { Telemetry } from '../scene/Observatory';
@@ -78,20 +78,24 @@ export default function App() {
 
   const locatedEvents = useMemo(() => news?.events.filter(isLocated) ?? [], [news]);
   const chaosSummary = useMemo(() => deriveChaosParameters(news), [news]);
-  const scrollToChaos = () => {
+  const scrollToChaos = useCallback(() => {
     document.getElementById('chaos-observatory')?.scrollIntoView({ behavior: 'smooth' });
-  };
-  const scrollToEarth = () => {
+  }, []);
+  const scrollToEarth = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  const selectEvent = (event: NewsItem | null) => {
+  }, []);
+  const selectEvent = useCallback((event: NewsItem | null) => {
     setHoveredEvent(null);
     if (event && isLocated(event)) {
       setDeep(false);
       engine.current?.focusCoordinates(event);
     }
     setSelectedEvent(event);
-  };
+  }, []);
+  const focusFromChaos = useCallback((item: NewsItem) => {
+    selectEvent(item);
+    scrollToEarth();
+  }, [selectEvent, scrollToEarth]);
 
   useEffect(() => {
     engine.current?.setHighlight(hoveredEvent?.id ?? selectedEvent?.id ?? null);
@@ -349,7 +353,7 @@ export default function App() {
       <div className="field-meta"><span className="interaction-hint">拖曳旋转 <b>·</b> 滚动接近 <b>·</b> 点选地表</span><span className="field-actions"><button onClick={toggleCalibration} aria-pressed={calibration}>坐标校准</button><span>/</span><button onClick={() => setCredits(!credits)} aria-expanded={credits}>底图档案{textures.warnings.length > 0 ? ' !' : ''}</button></span></div>
 
       <TimeControl utc={telemetry.utc} mode={mode} onChange={changeMode} />
-      <div className="bottom-signature"><span>清理，只是一份普通的工作。</span><button className="chaos-cue" data-testid="scroll-to-chaos" onClick={scrollToChaos}>↓ 混沌相空间 · ρ {chaosSummary.rho.toFixed(2)} · {chaosSummary.regimeLabel}</button><span>观测日期 {date.toISOString().slice(0, 10)} <span className="signature-dot">·</span> 无需回应</span></div>
+      <div className="bottom-signature"><span>清理，只是一份普通的工作。</span><button className="chaos-cue" data-testid="scroll-to-chaos" onClick={scrollToChaos}>↓ 进入混沌相空间 · 蝴蝶效应 &amp; 三体乱纪元（ρ {chaosSummary.rho.toFixed(1)}）</button><span>观测日期 {date.toISOString().slice(0, 10)} <span className="signature-dot">·</span> 无需回应</span></div>
     </div>
 
     <nav className="narrative-dock" aria-label="歌者观测模式" inert={quiet || prologueOpen}>
@@ -394,7 +398,7 @@ export default function App() {
     snapshot={news}
     selectedEvent={selectedEvent}
     hidden={quiet || dimensionalActive || prologueOpen}
-    onFocusOnEarth={(item) => { selectEvent(item); scrollToEarth(); }}
+    onFocusOnEarth={focusFromChaos}
     onBackToEarth={scrollToEarth}
   />
   </div>;

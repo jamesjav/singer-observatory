@@ -52,6 +52,9 @@ export class Observatory {
   private readonly controls: OrbitControls;
   private readonly raycaster = new Raycaster();
   private readonly resizeObserver: ResizeObserver;
+  private readonly visibilityObserver?: IntersectionObserver;
+  private hostVisible = true;
+  private tabVisible = typeof document === 'undefined' ? true : document.visibilityState !== 'hidden';
   private readonly sunUniform = { value: solarPosition(Date.now()).direction };
   private readonly cloudOffset = { value: 0 };
   private readonly cloudsEnabled = { value: 1 };
@@ -114,6 +117,7 @@ export class Observatory {
     const initialSun = solarPosition(this.clock.read());
     this.camera.position.copy(toVector({ lat: 19, lon: initialSun.lon - 48 }, this.normalDistance));
     this.returnPosition.copy(this.camera.position);
+    this.renderer.domElement.addEventListener('wheel', this.onWheelCapture, { capture: true, passive: true });
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.065;
@@ -128,12 +132,22 @@ export class Observatory {
     this.scene.add(createStars(), this.foil, this.lunarReference);
     this.resizeObserver = new ResizeObserver(this.resize);
     this.resizeObserver.observe(host);
+    if (typeof IntersectionObserver !== 'undefined') {
+      this.visibilityObserver = new IntersectionObserver((entries) => {
+        this.hostVisible = entries.some((entry) => entry.isIntersecting);
+        this.syncLoop();
+      }, { threshold: 0.02 });
+      this.visibilityObserver.observe(host);
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
     this.resize();
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.addEventListener('pointermove', this.onPointerMove);
     this.renderer.domElement.addEventListener('pointerup', this.onPointerUp);
     this.renderer.domElement.addEventListener('pointerleave', this.onPointerLeave);
-    this.animation = requestAnimationFrame(this.frame);
+    this.syncLoop();
   }
 
   async initialize() {
@@ -291,7 +305,7 @@ export class Observatory {
   };
 
   private frame = (now: number) => {
-    if (this.disposed) return;
+    if (this.disposed || !this.hostVisible || !this.tabVisible) { this.animation = 0; return; }
     this.animation = requestAnimationFrame(this.frame);
     const dimensional = this.sequence.sample(now);
     const utc = this.clock.read(now);
@@ -350,9 +364,38 @@ export class Observatory {
     }
   };
 
-  private pointerCoordinates(event: PointerEvent) {
+  private syncLoop() {
+    if (this.disposed) return;
+    const shouldRun = this.hostVisible && this.tabVisible;
+    if (shouldRun && !this.animation) {
+      this.animation = requestAnimationFrame(this.frame);
+    } else if (!shouldRun && this.animation) {
+      cancelAnimationFrame(this.animation);
+      this.animation = 0;
+    }
+  }
+
+  private onVisibilityChange = () => {
+    this.tabVisible = document.visibilityState !== 'hidden';
+    this.syncLoop();
+  };
+
+  // Allow wheel scrolling in the dark space around Earth to scroll naturally to the Chaos Observatory below.
+  private onWheelCapture = (event: WheelEvent) => {
+    if (event.ctrlKey || event.metaKey) return;
+    const pointer = this.pointerFromClient(event.clientX, event.clientY);
+    if (!this.hitEarth(pointer)) {
+      event.stopImmediatePropagation();
+    }
+  };
+
+  private pointerFromClient(clientX: number, clientY: number) {
     const rect = this.renderer.domElement.getBoundingClientRect();
-    return new Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
+    return new Vector2((clientX - rect.left) / rect.width * 2 - 1, -(clientY - rect.top) / rect.height * 2 + 1);
+  }
+
+  private pointerCoordinates(event: PointerEvent) {
+    return this.pointerFromClient(event.clientX, event.clientY);
   }
 
   private hitEarth(pointer: Vector2) {
@@ -445,7 +488,11 @@ export class Observatory {
   dispose() {
     this.disposed = true;
     cancelAnimationFrame(this.animation);
+    this.animation = 0;
     this.resizeObserver.disconnect();
+    this.visibilityObserver?.disconnect();
+    if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.renderer.domElement.removeEventListener('wheel', this.onWheelCapture, { capture: true });
     this.controls.removeEventListener('start', this.onNavigation);
     this.controls.dispose();
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);

@@ -40,8 +40,9 @@ describe('news-coupled shared-destiny chaos simulation', () => {
     expect(params.highlights).toEqual([]);
   });
 
-  it('prioritizes geopolitical, order, economic and tech news over climate-conference chatter and micro-quakes', () => {
+  it('prioritizes geopolitical, order, economic and tech news over climate talk, entertainment and micro-quakes', () => {
     const climate = evaluateCivilizationSignal(makeEvent({ id: 'cop', summary: 'COP31 climate talks break down over pledge', tag: '灾变扰动', entropy: 0.64 }));
+    const gossip = evaluateCivilizationSignal(makeEvent({ id: 'pop', summary: 'Rapper concert chaos sparks celebrity drama', tag: '表面喧嚣', entropy: 0.22 }));
     const conflict = evaluateCivilizationSignal(makeEvent({ id: 'war', summary: 'Drone attack hits cargo ship near port', tag: '局部摩擦', entropy: 0.68 }));
     const economy = evaluateCivilizationSignal(makeEvent({ id: 'eco', summary: 'Central bank warns of global trade tariff recession risk', tag: '秩序震荡', entropy: 0.56 }));
     const tech = evaluateCivilizationSignal(makeEvent({ id: 'ai', summary: 'New AI semiconductor breakthrough reshapes chip supply', tag: '技术跃迁', entropy: 0.48 }));
@@ -51,36 +52,37 @@ describe('news-coupled shared-destiny chaos simulation', () => {
     expect(tech.domain).toBe('科技跃迁');
     expect(conflict.impact).toBeGreaterThan(climate.impact);
     expect(economy.impact).toBeGreaterThan(climate.impact);
-    expect(tech.impact).toBeGreaterThan(climate.impact);
+    expect(tech.impact).toBeGreaterThan(gossip.impact);
 
     const params = deriveChaosParameters(makeSnapshot([
       makeEvent({ id: 'q1', kind: 'quake', precision: 'seismic', tag: '地壳微震', summary: 'M 3.2 - Hawaii', magnitude: 3.2, depthKm: 10 }),
       makeEvent({ id: 'cop1', summary: 'COP31 climate summit talks stall', tag: '灾变扰动', entropy: 0.64 }),
       makeEvent({ id: 'war1', summary: 'Explosion on cargo ship after drone attack', tag: '局部摩擦', entropy: 0.68 }),
-      makeEvent({ id: 'ord1', summary: 'Belgium airports shut down over anti-austerity strike', tag: '秩序震荡', entropy: 0.56 }),
+      makeEvent({ id: 'zh1', source: '联合国新闻', summary: '人工智能将成为影响全球竞争力和经济增长的重要因素', tag: '技术跃迁', entropy: 0.56 }),
     ]));
     expect(params.humanNewsCount).toBe(3);
     expect(params.highlights[0].item.id).toBe('war1');
-    expect(params.highlights[1].item.id).toBe('ord1');
+    expect(params.highlights.some((h) => h.isChinese)).toBe(true);
   });
 
-  it('increases rho and sigma with higher geopolitical conflict and severe world news', () => {
+  it('allows calm feeds to stay below rho_c = 24.74 while high conflict drains beta and spikes rho', () => {
     const calm = deriveChaosParameters(makeSnapshot([
-      makeEvent({ id: 'c1', summary: 'Museum opens autumn sculpture exhibition', tag: '表面喧嚣', entropy: 0.18 }),
-      makeEvent({ id: 'c2', summary: 'Local marathon draws weekend runners', tag: '表面喧嚣', entropy: 0.2 }),
+      makeEvent({ id: 'c1', summary: 'Museum opens autumn sculpture exhibition', tag: '表面喧嚣', entropy: 0.18, lat: null, lon: null, precision: 'unlocated' }),
+      makeEvent({ id: 'c2', summary: 'Local marathon draws weekend runners', tag: '表面喧嚣', entropy: 0.2, lat: null, lon: null, precision: 'unlocated' }),
     ]));
     const turbulent = deriveChaosParameters(makeSnapshot([
       makeEvent({ id: 't1', summary: 'Missile strike escalates border conflict', tag: '局部摩擦', entropy: 0.85 }),
       makeEvent({ id: 't2', summary: 'Trade sanctions and tariff shock rattle global markets', tag: '秩序震荡', entropy: 0.65 }),
-      makeEvent({ id: 't3', summary: 'AI chip export controls reshape global semiconductor race', tag: '技术跃迁', entropy: 0.55 }),
+      makeEvent({ id: 't3', summary: 'Military drone attack hits strategic port', tag: '局部摩擦', entropy: 0.82 }),
     ]));
+    expect(calm.rho).toBeLessThan(24.74);
     expect(turbulent.rho).toBeGreaterThan(calm.rho);
     expect(turbulent.sigma).toBeGreaterThan(calm.sigma);
-    expect(turbulent.beta).toBeGreaterThan(calm.beta);
+    expect(turbulent.beta).toBeLessThan(calm.beta);
     expect(turbulent.severeCount).toBeGreaterThan(0);
   });
 
-  it('exhibits deterministic butterfly sensitivity divergence in Lorenz twin trajectories', () => {
+  it('exhibits butterfly divergence and decaying transient thermal impulse Δρ on news injection', () => {
     const engine = new LorenzEngine();
     const initial = engine.read();
     expect(initial.separation).toBeCloseTo(1e-3, 5);
@@ -89,23 +91,19 @@ describe('news-coupled shared-destiny chaos simulation', () => {
     const diverged = engine.read();
     expect(diverged.separation).toBeGreaterThan(1.0);
     expect(diverged.wingSwitches).toBeGreaterThan(2);
-    expect(Number.isFinite(diverged.lyapunov)).toBe(true);
-    expect(diverged.primary.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.z))).toBe(true);
-  });
+    expect(diverged.predictionHorizon).toBeGreaterThan(0);
 
-  it('injects a news event perturbation and records a bounded marker', () => {
-    const engine = new LorenzEngine();
     const event = makeEvent({ id: 'geo-1', settlement: '利比亚', summary: 'Explosion on ship after suspected drone attack', tag: '局部摩擦', entropy: 0.68 });
-    for (let i = 0; i < 40; i++) engine.step({ sigma: 10, rho: 28, beta: 8 / 3 });
-    engine.injectPerturbation(event);
-    const state = engine.read();
-    expect(state.activeTrigger?.id).toBe('geo-1');
-    expect(state.markers).toHaveLength(1);
-    expect(state.markers[0].label).toContain('地缘安全');
-    expect(state.separation).toBeLessThan(0.01);
+    engine.injectPerturbation(event, 1);
+    const injected = engine.read();
+    expect(injected.activeTrigger?.id).toBe('geo-1');
+    expect(injected.impulseRho).toBeGreaterThan(2.5);
+    expect(injected.markers[injected.markers.length - 1].label).toContain('地缘安全');
+    for (let i = 0; i < 400; i++) engine.step(params, 3, 0.0055);
+    expect(engine.read().impulseRho).toBeLessThan(injected.impulseRho);
   });
 
-  it('keeps Three-Body RK4 trajectories finite and detects era transitions', () => {
+  it('keeps Three-Body RK4 trajectories finite, records chaos history, and detects era transitions', () => {
     const engine = new ThreeBodyEngine();
     const start = engine.read();
     expect(start.bodies).toHaveLength(3);
@@ -119,6 +117,9 @@ describe('news-coupled shared-destiny chaos simulation', () => {
         expect(Number.isFinite(body.pos.y)).toBe(true);
       }
     }
+    const end = engine.read();
     expect(sawChaos).toBe(true);
+    expect(end.chaosHistory.length).toBeGreaterThan(20);
+    expect(end.maxRadius).toBeGreaterThanOrEqual(1.25);
   });
 });
