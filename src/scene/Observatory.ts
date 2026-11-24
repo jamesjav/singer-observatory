@@ -11,8 +11,8 @@ import type { TimeMode } from '../simulation/clock';
 import type { NoiseEvent, WindSample } from '../data/providers/types';
 import { MOCK_EVENTS } from '../data/mock/noise';
 import { createWindField } from './effects/wind';
-import { loadEarthTextures } from './earth/textures';
-import type { TextureSet, TextureStatus } from './earth/textures';
+import { createInitialEarthTextures, loadEarthTextures } from './earth/textures';
+import type { TextureKind, TextureSet, TextureStatus } from './earth/textures';
 import { sphereVertex, earthFragment, cloudFragment, atmosphereFragment } from './shaders/earth';
 import { createStars } from './effects/stars';
 import { createNoiseMarkers, updateNoise } from './effects/noise';
@@ -59,6 +59,20 @@ export class Observatory {
   private readonly cloudOffset = { value: 0 };
   private readonly cloudsEnabled = { value: 1 };
   private textures?: TextureSet;
+  private earthUniforms?: {
+    uDay: { value: TextureSet['day'] };
+    uNight: { value: TextureSet['night'] };
+    uNormal: { value: TextureSet['normal'] };
+    uSpecular: { value: TextureSet['specular'] };
+    uClouds: { value: TextureSet['clouds'] };
+    uSun: { value: Vector3 };
+    uCloudOffset: { value: number };
+    uCloudsEnabled: { value: number };
+    uFold: { value: number };
+    uFoldRight: { value: Vector3 };
+    uFoldUp: { value: Vector3 };
+    uFoldNormal: { value: Vector3 };
+  };
   private earth?: Mesh<SphereGeometry, ShaderMaterial>;
   private clouds?: Mesh<SphereGeometry, ShaderMaterial>;
   private noiseGroup?: Group;
@@ -73,6 +87,7 @@ export class Observatory {
   private noiseEnabled = true;
   private quakesEnabled = true;
   private autoRotate = true;
+  private pausedByOverlay = false;
   private lockedOnEvent = false;
   private dragging = false;
   private lastUserDragEnd = 0;
@@ -121,7 +136,8 @@ export class Observatory {
     this.host.appendChild(this.renderer.domElement);
     this.renderer.domElement.addEventListener('webglcontextlost', this.onContextLost);
     const initialSun = solarPosition(this.clock.read());
-    this.camera.position.copy(toVector({ lat: 19, lon: initialSun.lon - 48 }, this.normalDistance));
+    // Start east of the subsolar point so westward camera orbit (west-to-east Earth spin) sweeps across the sunlit hemisphere first.
+    this.camera.position.copy(toVector({ lat: 19, lon: initialSun.lon + 48 }, this.normalDistance));
     this.returnPosition.copy(this.camera.position);
     this.renderer.domElement.addEventListener('wheel', this.onWheelCapture, { capture: true, passive: true });
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -159,16 +175,17 @@ export class Observatory {
 
   async initialize() {
     try {
-      const textures = await loadEarthTextures(this.renderer, (status) => { if (!this.disposed) this.callbacks.onTextures(status); });
-      if (this.disposed) { Object.values(textures).forEach((texture) => texture.dispose()); return; }
-      this.textures = textures;
+      // Mount Earth immediately with procedural textures so the sphere and atmosphere render on frame 1 without a black void.
+      const initialTextures = createInitialEarthTextures(this.renderer);
+      this.textures = initialTextures;
       const geometry = new SphereGeometry(1, 160, 96);
       const uniforms = {
-        uDay: { value: textures.day }, uNight: { value: textures.night },
-        uNormal: { value: textures.normal }, uSpecular: { value: textures.specular },
-        uClouds: { value: textures.clouds }, uSun: this.sunUniform,
+        uDay: { value: initialTextures.day }, uNight: { value: initialTextures.night },
+        uNormal: { value: initialTextures.normal }, uSpecular: { value: initialTextures.specular },
+        uClouds: { value: initialTextures.clouds }, uSun: this.sunUniform,
         uCloudOffset: this.cloudOffset, uCloudsEnabled: this.cloudsEnabled, ...this.foldUniforms,
       };
+      this.earthUniforms = uniforms;
       this.earth = new Mesh(geometry, new ShaderMaterial({ uniforms, vertexShader: sphereVertex, fragmentShader: earthFragment }));
       this.earth.name = 'earth-surface';
       this.scene.add(this.earth);
@@ -189,6 +206,29 @@ export class Observatory {
       this.scene.add(atmosphere);
       this.rebuildMarkers();
       await this.renderer.compileAsync(this.scene, this.camera);
+      if (this.disposed) return;
+
+      const uniformKey: Record<TextureKind, 'uDay' | 'uNight' | 'uNormal' | 'uSpecular' | 'uClouds'> = {
+        day: 'uDay', night: 'uNight', normal: 'uNormal', specular: 'uSpecular', clouds: 'uClouds',
+      };
+      const applyTexture = (kind: TextureKind, texture: TextureSet[TextureKind]) => {
+        if (this.disposed || !this.textures || !this.earthUniforms) {
+          texture.dispose();
+          return;
+        }
+        const prev = this.textures[kind];
+        this.textures[kind] = texture;
+        this.earthUniforms[uniformKey[kind]].value = texture;
+        if (prev && prev !== texture) prev.dispose();
+        if (kind === 'day') this.ready = true;
+      };
+
+      await loadEarthTextures(
+        this.renderer,
+        (status) => { if (!this.disposed) this.callbacks.onTextures(status); },
+        (kind, texture) => { applyTexture(kind, texture); },
+        () => this.disposed,
+      );
       if (!this.disposed) this.ready = true;
     } catch (error) {
       if (!this.disposed) this.callbacks.onError(error instanceof Error ? error.message : '观测视野初始化失败');
@@ -200,6 +240,7 @@ export class Observatory {
   setNoise(enabled: boolean) { this.noiseEnabled = enabled; }
   setQuakes(enabled: boolean) { this.quakesEnabled = enabled; }
   setAutoRotate(enabled: boolean) { this.autoRotate = enabled; if (enabled) this.lastUserDragEnd = 0; }
+  setOverlayPaused(paused: boolean) { this.pausedByOverlay = paused; }
   setEventLocked(locked: boolean) { this.lockedOnEvent = locked; }
   setHighlight(id: string | null) { this.highlightedId = id; }
   setCalibration(enabled: boolean) { this.calibrating = enabled; this.rebuildMarkers(); }
@@ -347,7 +388,9 @@ export class Observatory {
       const angle = this.cruiseAngle + Math.max(0, now - this.cruiseStarted - 3200) * 0.0000015;
       this.camera.position.copy(right.multiplyScalar(Math.cos(angle)).addScaledVector(up, Math.sin(angle)).setLength(this.normalDistance));
     } else if (
+      this.ready &&
       this.autoRotate &&
+      !this.pausedByOverlay &&
       !this.cameraTween &&
       !activeSequence &&
       !this.calibrating &&

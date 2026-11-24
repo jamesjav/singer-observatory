@@ -104,6 +104,10 @@ export default function App() {
   }, [hoveredEvent, selectedEvent]);
 
   useEffect(() => {
+    engine.current?.setOverlayPaused(prologueOpen);
+  }, [prologueOpen]);
+
+  useEffect(() => {
     if (picked || !telemetry.ready || !locatedEvents.length) return;
     const timer = window.setTimeout(() => {
       const event = locatedEvents.find(item => item.kind !== 'quake' && engine.current?.project(item).visible);
@@ -123,6 +127,7 @@ export default function App() {
         onTextures: setTextures, onError: setError, onPulse: (kind) => audio.pulse(kind),
       });
       engine.current = observatory;
+      observatory.setOverlayPaused(prologueOpen);
       if (import.meta.env.DEV) window.__observatory = observatory;
       void observatory.initialize();
       return () => { observatory.dispose(); void audio.dispose(); sound.current = null; engine.current = null; delete window.__observatory; };
@@ -198,8 +203,8 @@ export default function App() {
         if (signal.aborted) return;
         setNews(snapshot);
         engine.current?.setNews(snapshot.events.filter(isLocated));
-        if (snapshot.mode === 'demo') {
-          retryTimer = window.setTimeout(() => { void load(); }, 20000);
+        if (snapshot.mode === 'demo' || snapshot.mode === 'cached') {
+          retryTimer = window.setTimeout(() => { void load(); }, snapshot.mode === 'cached' ? 6000 : 20000);
         }
       } catch { /* A newer refresh owns the result after cancellation. */ }
     };
